@@ -12,6 +12,17 @@ from matplotlib.figure import Figure
 from train_model import *
 
 
+def lazy_load():
+    X, y = get_data()
+    X_train, X_test, y_train, y_test = make_train_test(X, y)
+    X_train, X_test, y_train, y_test = preprocess(X_train, X_test, y_train, y_test)
+
+    return X_train, X_test, y_train, y_test
+
+
+X_train, X_test, y_train, y_test = lazy_load()
+
+
 # ----------------------------
 # TRAIN THREAD
 # ----------------------------
@@ -19,25 +30,20 @@ class TrainWorker(QThread):
     finished = pyqtSignal(object, object, object)
     progress = pyqtSignal(int)
 
-    def __init__(self, lr, optimizer_name):
+    def __init__(self, lr, loss_name, optimizer_name):
         super().__init__()
         self.lr = lr
+        self.loss_name = loss_name
         self.optimizer_name = optimizer_name
 
     def run(self):
-        X, y = get_data()
-        X_train, X_test, y_train, y_test = make_train_test(X, y)
-
-        X_train, X_test, y_train, y_test = preprocess(
-            X_train, X_test, y_train, y_test
-        )
-
         model = make_model()
-        loss_fn = loss_func()
+
+        loss_fn = get_loss_func(self.loss_name)
         opt = get_optimizer(self.optimizer_name, self.lr, model)
 
         epoch_count, train_loss, test_loss = model_train(model, loss_fn, opt, X_train, X_test, y_train, y_test,
-                                                   self.progress.emit)
+                                                         self.progress.emit)
 
         self.finished.emit(epoch_count, train_loss, test_loss)
 
@@ -67,6 +73,15 @@ class PlotWindow(QWidget):
         controls.addWidget(self.lr_slider)
 
         # ----------------------------
+        # LOSS FUNCTION
+        # ----------------------------
+        self.loss_box = QComboBox()
+        self.loss_box.addItems(["Mean Squared Error", "Mean Absolute Error", "Huber Loss"])
+
+        controls.addWidget(QLabel("Loss Function"))
+        controls.addWidget(self.loss_box)
+
+        # ----------------------------
         # OPTIMIZER
         # ----------------------------
         self.opt_box = QComboBox()
@@ -89,11 +104,6 @@ class PlotWindow(QWidget):
         # ----------------------------
         self.compare_box = QComboBox()
         self.compare_box.addItem("Select run")
-
-        self.compare_btn = QProgressBar()  # (dummy placeholder removed button completely)
-        self.compare_btn = None
-
-        self.compare_btn_real = QProgressBar()
 
         self.compare_box.currentIndexChanged.connect(self.compare_runs)
 
@@ -121,6 +131,7 @@ class PlotWindow(QWidget):
 
         # AUTO-TRAIN TRIGGERS
         self.lr_slider.valueChanged.connect(self.run_training)
+        self.loss_box.currentIndexChanged.connect(self.run_training)
         self.opt_box.currentIndexChanged.connect(self.run_training)
 
     # ----------------------------
@@ -128,6 +139,9 @@ class PlotWindow(QWidget):
     # ----------------------------
     def lr(self):
         return [0.1, 0.01, 0.001, 0.0001][self.lr_slider.value()]
+
+    def loss(self):
+        return self.loss_box.currentText()
 
     def opt(self):
         return self.opt_box.currentText()
@@ -137,6 +151,7 @@ class PlotWindow(QWidget):
     # ----------------------------
     def set_ui(self, state):
         self.lr_slider.setEnabled(state)
+        self.loss_box.setEnabled(state)
         self.opt_box.setEnabled(state)
 
     # ----------------------------
@@ -146,7 +161,7 @@ class PlotWindow(QWidget):
         self.set_ui(False)
         self.progress.setValue(0)
 
-        self.worker = TrainWorker(self.lr(), self.opt())
+        self.worker = TrainWorker(self.lr(), self.loss(), self.opt())
         self.worker.progress.connect(self.progress.setValue)
         self.worker.finished.connect(self.save_run)
         self.worker.start()
@@ -160,8 +175,9 @@ class PlotWindow(QWidget):
             "train": train_loss,
             "test": test_loss,
             "lr": self.lr(),
+            "loss": self.loss(),
             "opt": self.opt(),
-            "name": f"{self.opt()} lr={self.lr()}"
+            "name": f"{self.loss()} {self.opt()} lr={self.lr()}"
         }
 
         # ----------------------------

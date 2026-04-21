@@ -46,8 +46,15 @@ def make_model():
     return LinearRegressionModel()
 
 
-def loss_func():
-    return nn.MSELoss()
+def get_loss_func(loss_name):
+    if loss_name == "Mean Squared Error":
+        return nn.MSELoss()
+    elif loss_name == "Mean Absolute Error":
+        return nn.L1Loss()
+    elif loss_name == "Huber Loss":
+        return nn.HuberLoss()
+    else:
+        raise ValueError("Unknown loss function")
 
 
 def get_optimizer(opt_name, lr, model):
