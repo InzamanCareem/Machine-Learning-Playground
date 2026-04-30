@@ -1,4 +1,5 @@
-from sklearn.datasets import fetch_california_housing
+from sklearn.datasets import fetch_california_housing, load_breast_cancer
+from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import torch
@@ -6,9 +7,14 @@ import torch.nn as nn
 import torch.optim as optim
 
 
-def get_data():
-    data = fetch_california_housing()
-    return data.data, data.target
+def get_data(dataset_type):
+    if dataset_type == "Regression":
+        data = fetch_california_housing()
+        return data.data, data.target
+
+    elif dataset_type == "Classification":
+        data = load_breast_cancer()
+        return data.data, data.target
 
 
 def make_train_test(X, y):
@@ -28,22 +34,40 @@ def preprocess(X_train, X_test, y_train, y_test):
     return X_train, X_test, y_train, y_test
 
 
-def make_model():
-    class LinearRegressionModel(nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.layer = nn.Sequential(
-                nn.Linear(8, 32),
-                nn.ReLU(),
-                nn.Linear(32, 16),
-                nn.ReLU(),
-                nn.Linear(16, 1)
-            )
+def make_model(dataset_type):
+    if dataset_type == "Regression":
+        class LinearRegressionModel(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.layer = nn.Sequential(
+                    nn.Linear(8, 32),
+                    nn.ReLU(),
+                    nn.Linear(32, 16),
+                    nn.ReLU(),
+                    nn.Linear(16, 1)
+                )
 
-        def forward(self, x):
-            return self.layer(x)
+            def forward(self, x):
+                return self.layer(x)
 
-    return LinearRegressionModel()
+        return LinearRegressionModel()
+
+    elif dataset_type == "Classification":
+        class BinaryClassificationModel(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.layer = nn.Sequential(
+                    nn.Linear(30, 32),
+                    nn.ReLU(),
+                    nn.Linear(32, 16),
+                    nn.ReLU(),
+                    nn.Linear(16, 1),
+                )
+
+            def forward(self, x):
+                return self.layer(x)
+
+        return BinaryClassificationModel()
 
 
 def get_loss_func(loss_name):
@@ -53,6 +77,8 @@ def get_loss_func(loss_name):
         return nn.L1Loss()
     elif loss_name == "Huber Loss":
         return nn.HuberLoss()
+    elif loss_name == "Binary Cross Entropy":
+        return nn.BCEWithLogitsLoss()
     else:
         raise ValueError("Unknown loss function")
 
@@ -68,35 +94,71 @@ def get_optimizer(opt_name, lr, model):
         raise ValueError("Unknown optimizer")
 
 
-def model_train(model, loss_fn, optimizer, X_train, X_test, y_train, y_test, progress_callback=None):
+def model_train(dataset_type, model, loss_fn, optimizer, X_train, X_test, y_train, y_test,
+                progress_callback=None):
     torch.manual_seed(42)
-
     epochs = 50
-
     epoch_count = []
     train_loss_values = []
     test_loss_values = []
+    train_accuracy_values = []
+    test_accuracy_values = []
 
-    for epoch in range(epochs):
-        model.train()
+    if dataset_type == "Regression":
+        for epoch in range(epochs):
+            model.train()
 
-        y_pred = model(X_train)
-        loss = loss_fn(y_pred, y_train)
+            y_pred = model(X_train)
+            loss = loss_fn(y_pred, y_train)
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-        model.eval()
-        with torch.inference_mode():
-            test_pred = model(X_test)
-            test_loss = loss_fn(test_pred, y_test)
+            model.eval()
+            with torch.inference_mode():
+                test_pred = model(X_test)
+                test_loss = loss_fn(test_pred, y_test)
 
-        epoch_count.append(epoch)
-        train_loss_values.append(loss.item())
-        test_loss_values.append(test_loss.item())
+            epoch_count.append(epoch)
+            train_loss_values.append(loss.item())
+            test_loss_values.append(test_loss.item())
 
-        if progress_callback:
-            progress_callback(int(((epoch + 1) / epochs) * 100))
+            if progress_callback:
+                progress_callback(int(((epoch + 1) / epochs) * 100))
 
-    return epoch_count, train_loss_values, test_loss_values
+        return epoch_count, train_loss_values, test_loss_values
+
+    elif dataset_type == "Classification":
+        for epoch in range(epochs):
+            model.train()
+
+            y_logits = model(X_train)
+            y_pred = torch.round(torch.sigmoid(y_logits))
+
+            loss = loss_fn(y_logits, y_train)
+            train_accuracy = accuracy_score(y_train.detach().numpy(), y_pred.detach().numpy())
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            epoch_count.append(epoch)
+            train_loss_values.append(loss.item())
+            train_accuracy_values.append(train_accuracy)
+
+            model.eval()
+            with torch.inference_mode():
+                test_logits = model(X_test)
+                test_pred = torch.round(torch.sigmoid(test_logits))
+
+                test_loss = loss_fn(test_logits, y_test)
+                test_accuracy = accuracy_score(y_test.detach().numpy(), test_pred.detach().numpy())
+
+                test_loss_values.append(test_loss.item())
+                test_accuracy_values.append(test_accuracy)
+
+            if progress_callback:
+                progress_callback(int(((epoch + 1) / epochs) * 100))
+
+        return epoch_count, train_loss_values, test_loss_values, train_accuracy_values, test_accuracy_values
