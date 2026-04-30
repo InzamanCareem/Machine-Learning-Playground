@@ -216,10 +216,12 @@ class PlotWindow(QWidget):
         self.fig.clear()
         ax = self.fig.add_subplot(111)
 
-        ax.plot(run["epochs"], run["train"], label="Train")
-        ax.plot(run["epochs"], run["test"], label="Test")
+        ax.plot(run["epochs"], run["train"], label="Train Loss")
+        ax.plot(run["epochs"], run["test"], label="Test Loss")
 
         ax.set_title("Current Run")
+        ax.set_ylabel("Loss")
+        ax.set_xlabel("Epochs")
 
         ax.legend()
         ax.grid()
@@ -240,13 +242,15 @@ class PlotWindow(QWidget):
         self.fig2.clear()
         ax = self.fig2.add_subplot(111)
 
-        ax.plot(current["epochs"], current["train"], label="Current Train")
-        ax.plot(current["epochs"], current["test"], label="Current Test")
+        ax.plot(current["epochs"], current["train"], label="Current Train Loss")
+        ax.plot(current["epochs"], current["test"], label="Current Test Loss")
 
-        ax.plot(selected["epochs"], selected["train"], "--", label="Selected Train")
-        ax.plot(selected["epochs"], selected["test"], "--", label="Selected Test")
+        ax.plot(selected["epochs"], selected["train"], "--", label="Selected Train Loss")
+        ax.plot(selected["epochs"], selected["test"], "--", label="Selected Test Loss")
 
         ax.set_title("Comparison")
+        ax.set_ylabel("Loss")
+        ax.set_xlabel("Epochs")
 
         ax.legend()
         ax.grid()
