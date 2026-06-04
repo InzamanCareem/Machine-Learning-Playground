@@ -37,14 +37,14 @@ class TrainWorker(QThread):
         opt = get_optimizer(self.optimizer_name, self.lr, model)
 
         if self.dataset == "Regression":
-            epoch_count, train_loss, test_loss = model_train(model, loss_fn, opt, self.X_train, self.X_test,
+            epoch_count, train_loss, test_loss = model_train(self.dataset, model, loss_fn, opt, self.X_train, self.X_test,
                                                              self.y_train, self.y_test, self.progress.emit)
 
             self.finished.emit(epoch_count, train_loss, test_loss, -1, -1)
 
         elif self.dataset == "Classification":
             (epoch_count, train_loss, test_loss, train_accuracy,
-             test_accuracy) = model_train(model, loss_fn, opt, self.X_train, self.X_test, self.y_train,
+             test_accuracy) = model_train(self.dataset, model, loss_fn, opt, self.X_train, self.X_test, self.y_train,
                                           self.y_test, self.progress.emit)
 
             self.finished.emit(epoch_count, train_loss, test_loss, train_accuracy, test_accuracy)
