@@ -6,6 +6,11 @@ This project is designed for exploration, intuition-building, and rapid experime
 
 ---
 
+## 📺 Demo Video
+![Demo](demo.gif)
+
+---
+
 ## ✨ Features
 
 - 🎛️ Interactive hyperparameter controls  
