@@ -1,4 +1,4 @@
-from sklearn.datasets import fetch_california_housing, load_breast_cancer
+from sklearn.datasets import make_regression, make_classification
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -7,14 +7,16 @@ import torch.nn as nn
 import torch.optim as optim
 
 
-def get_data(dataset_type):
+def get_data(dataset_type, n_samples, n_features):
     if dataset_type == "Regression":
-        data = fetch_california_housing()
-        return data.data, data.target
+        data = make_regression(n_samples=n_samples, n_features=n_features, n_informative=n_features, n_targets=1,
+                               shuffle=False, random_state=42)
+        return data[0], data[1]
 
     elif dataset_type == "Classification":
-        data = load_breast_cancer()
-        return data.data, data.target
+        data = make_classification(n_samples=n_samples, n_features=n_features, n_informative=n_features, n_redundant=0,
+                                   n_repeated=0, n_classes=2, shuffle=False, random_state=42)
+        return data[0], data[1]
 
 
 def make_train_test(X, y):
@@ -34,13 +36,13 @@ def preprocess(X_train, X_test, y_train, y_test):
     return X_train, X_test, y_train, y_test
 
 
-def make_model(dataset_type):
+def make_model(dataset_type, features):
     if dataset_type == "Regression":
         class LinearRegressionModel(nn.Module):
             def __init__(self):
                 super().__init__()
                 self.layer = nn.Sequential(
-                    nn.Linear(8, 32),
+                    nn.Linear(features, 32),
                     nn.ReLU(),
                     nn.Linear(32, 16),
                     nn.ReLU(),
@@ -57,7 +59,7 @@ def make_model(dataset_type):
             def __init__(self):
                 super().__init__()
                 self.layer = nn.Sequential(
-                    nn.Linear(30, 32),
+                    nn.Linear(features, 32),
                     nn.ReLU(),
                     nn.Linear(32, 16),
                     nn.ReLU(),

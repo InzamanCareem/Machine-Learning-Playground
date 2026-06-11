@@ -19,26 +19,40 @@ class TrainWorker(QThread):
     finished = pyqtSignal(object, object, object, object, object)
     progress = pyqtSignal(int)
 
-    def __init__(self, dataset, lr, loss_name, optimizer_name, X_train, X_test, y_train, y_test):
+    def __init__(self, dataset, samples, features, lr, loss_name, optimizer_name):
         super().__init__()
         self.dataset = dataset
+        self.samples = samples
+        self.features = features
         self.lr = lr
         self.loss_name = loss_name
         self.optimizer_name = optimizer_name
+        self.X_train = None
+        self.X_test = None
+        self.y_train = None
+        self.y_test = None
+
+    def load_dataset(self):
+        X, y = get_data(self.dataset, self.samples, self.features)
+        X_train, X_test, y_train, y_test = make_train_test(X, y)
+        X_train, X_test, y_train, y_test = preprocess(X_train, X_test, y_train, y_test)
+
         self.X_train = X_train
         self.X_test = X_test
         self.y_train = y_train
         self.y_test = y_test
 
     def run(self):
-        model = make_model(self.dataset)
+        self.load_dataset()
+
+        model = make_model(self.dataset, self.features)
 
         loss_fn = get_loss_func(self.loss_name)
         opt = get_optimizer(self.optimizer_name, self.lr, model)
 
         if self.dataset == "Regression":
-            epoch_count, train_loss, test_loss = model_train(self.dataset, model, loss_fn, opt, self.X_train, self.X_test,
-                                                             self.y_train, self.y_test, self.progress.emit)
+            epoch_count, train_loss, test_loss = model_train(self.dataset, model, loss_fn, opt, self.X_train,
+                                                             self.X_test, self.y_train, self.y_test, self.progress.emit)
 
             self.finished.emit(epoch_count, train_loss, test_loss, -1, -1)
 
@@ -72,12 +86,15 @@ class PlotWindow(QWidget):
         controls.addWidget(self.dataset)
         self.dataset.currentIndexChanged.connect(self.on_dataset_change)
 
-        self.X_train = None
-        self.X_test = None
-        self.y_train = None
-        self.y_test = None
+        self.samples_slider = QSlider(Qt.Orientation.Horizontal)
+        self.samples_slider.setRange(0, 4)
+        controls.addWidget(QLabel("Number of Samples"))
+        controls.addWidget(self.samples_slider)
 
-        self.load_dataset()
+        self.features_slider = QSlider(Qt.Orientation.Horizontal)
+        self.features_slider.setRange(0, 3)
+        controls.addWidget(QLabel("Number of Features"))
+        controls.addWidget(self.features_slider)
 
         # ----------------------------
         # LEARNING RATE
@@ -146,22 +163,15 @@ class PlotWindow(QWidget):
         self.setLayout(main_layout)
 
         # AUTO-TRAIN TRIGGERS
+        self.samples_slider.valueChanged.connect(self.run_training)
+        self.features_slider.valueChanged.connect(self.run_training)
         self.lr_slider.valueChanged.connect(self.run_training)
         self.loss_box.currentIndexChanged.connect(self.run_training)
         self.opt_box.currentIndexChanged.connect(self.run_training)
 
-    def load_dataset(self):
-        X, y = get_data(self.dataset.currentText())
-
-        X_train, X_test, y_train, y_test = make_train_test(X, y)
-        X_train, X_test, y_train, y_test = preprocess(X_train, X_test, y_train, y_test)
-
-        self.X_train = X_train
-        self.X_test = X_test
-        self.y_train = y_train
-        self.y_test = y_test
-
     def reset_ui(self):
+        self.samples_slider.blockSignals(True)
+        self.features_slider.blockSignals(True)
         self.lr_slider.blockSignals(True)
         self.loss_box.blockSignals(True)
         self.opt_box.blockSignals(True)
@@ -179,6 +189,8 @@ class PlotWindow(QWidget):
         self.opt_box.setCurrentIndex(0)
         self.progress.setValue(0)
 
+        self.samples_slider.blockSignals(False)
+        self.features_slider.blockSignals(False)
         self.lr_slider.blockSignals(False)
         self.loss_box.blockSignals(False)
         self.opt_box.blockSignals(False)
@@ -208,6 +220,12 @@ class PlotWindow(QWidget):
     # ----------------------------
     # VALUES
     # ----------------------------
+    def samples(self):
+        return [10, 20, 30, 40, 50][self.samples_slider.value()]
+
+    def features(self):
+        return [2, 4, 8, 16][self.features_slider.value()]
+
     def lr(self):
         return [0.1, 0.01, 0.001, 0.0001][self.lr_slider.value()]
 
@@ -221,6 +239,8 @@ class PlotWindow(QWidget):
     # UI LOCK
     # ----------------------------
     def set_ui(self, state):
+        self.samples_slider.setEnabled(state)
+        self.features_slider.setEnabled(state)
         self.lr_slider.setEnabled(state)
         self.loss_box.setEnabled(state)
         self.opt_box.setEnabled(state)
@@ -236,8 +256,8 @@ class PlotWindow(QWidget):
         self.set_ui(False)
         self.progress.setValue(0)
 
-        self.worker = TrainWorker(self.dataset.currentText(), self.lr(), self.loss(), self.opt(), self.X_train,
-                                  self.X_test, self.y_train, self.y_test)
+        self.worker = TrainWorker(self.dataset.currentText(), self.samples(), self.features(), self.lr(), self.loss(),
+                                  self.opt())
         self.worker.progress.connect(self.progress.setValue)
         self.worker.finished.connect(self.save_run)
         self.worker.start()
@@ -250,6 +270,8 @@ class PlotWindow(QWidget):
             "epochs": epochs,
             "train": train_loss,
             "test": test_loss,
+            "samples": self.samples(),
+            "features": self.features(),
             "lr": self.lr(),
             "loss": self.loss(),
             "opt": self.opt(),
