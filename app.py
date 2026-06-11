@@ -212,7 +212,6 @@ class PlotWindow(QWidget):
 
         self.setEnabled(False)
 
-        self.load_dataset()
         self.reset_ui()
 
         self.setEnabled(True)
@@ -221,7 +220,7 @@ class PlotWindow(QWidget):
     # VALUES
     # ----------------------------
     def samples(self):
-        return [10, 20, 30, 40, 50][self.samples_slider.value()]
+        return [100, 500, 1000, 5000, 10000][self.samples_slider.value()]
 
     def features(self):
         return [2, 4, 8, 16][self.features_slider.value()]
