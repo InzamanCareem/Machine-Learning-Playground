@@ -1,5 +1,6 @@
 import sys
 
+import numpy as np
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
     QSlider, QComboBox, QLabel, QProgressBar, QTabWidget
@@ -27,7 +28,7 @@ class PlotWindow(QWidget):
 
         controls_layout = QVBoxLayout()
 
-        tabs = QTabWidget()
+        control_tabs = QTabWidget()
 
         dataset_tab = QWidget()
         dataset_tab_layout = QVBoxLayout()
@@ -57,7 +58,10 @@ class PlotWindow(QWidget):
         # LEARNING RATE
         # ----------------------------
         self.lr_slider = QSlider(Qt.Orientation.Horizontal)
-        self.lr_slider.setRange(0, 3)
+        self.lr_slider.setRange(0, 15)
+        start = 1
+        end = 4
+        self.lr_values = np.logspace(-start, -end, num=(end - start) * 5 + 1)
 
         model_tab_layout.addWidget(QLabel("Learning Rate"))
         model_tab_layout.addWidget(self.lr_slider)
@@ -103,10 +107,10 @@ class PlotWindow(QWidget):
         dataset_tab.setLayout(dataset_tab_layout)
         model_tab.setLayout(model_tab_layout)
 
-        tabs.addTab(dataset_tab, "Dataset")
-        tabs.addTab(model_tab, "Model")
+        control_tabs.addTab(dataset_tab, "Dataset")
+        control_tabs.addTab(model_tab, "Model")
 
-        controls_layout.addWidget(tabs)
+        controls_layout.addWidget(control_tabs)
 
         config_layout.addLayout(controls_layout, 3)
         config_layout.addLayout(progress_layout, 1)
@@ -116,21 +120,46 @@ class PlotWindow(QWidget):
         # ----------------------------
         # PLOTS
         # ----------------------------
-        self.fig = Figure()
-        self.canvas = FigureCanvas(self.fig)
-
-        self.fig2 = Figure()
-        self.canvas2 = FigureCanvas(self.fig2)
-
         canvas_layout = QVBoxLayout()
-        canvas_layout.addWidget(self.canvas)
-        canvas_layout.addWidget(self.canvas2)
+
+        plot_tabs = QTabWidget()
+
+        loss_plot_tab = QWidget()
+        loss_plot_tab_layout = QVBoxLayout()
+
+        accuracy_plot_tab = QWidget()
+        accuracy_plot_tab_layout = QVBoxLayout()
+
+        validation_curve_tab = QWidget()
+        validation_curve_tab_layout = QVBoxLayout()
+
+        learning_curve_tab = QWidget()
+        learning_curve_tab_layout = QVBoxLayout()
+
+        self.loss_plot = Figure()
+        self.canvas = FigureCanvas(self.loss_plot)
+
+        self.loss_compare_plot = Figure()
+        self.canvas2 = FigureCanvas(self.loss_compare_plot)
+
+        loss_plot_tab_layout.addWidget(self.canvas)
+        loss_plot_tab_layout.addWidget(self.canvas2)
+
+        loss_plot_tab.setLayout(loss_plot_tab_layout)
+
+        plot_tabs.addTab(loss_plot_tab, "Loss Plot")
+        plot_tabs.addTab(accuracy_plot_tab, "Accuracy Plot")
+        plot_tabs.addTab(learning_curve_tab, "Learning Curve")
+        plot_tabs.addTab(validation_curve_tab, "Validation Curve")
+
+        canvas_layout.addWidget(plot_tabs)
 
         main_layout.addLayout(canvas_layout, 3)
 
         self.setLayout(main_layout)
 
         # AUTO-TRAIN TRIGGERS
+        # TODO: add training config to file and use that, do not train every time
         self.samples_slider.valueChanged.connect(self.run_training)
         self.features_slider.valueChanged.connect(self.run_training)
         self.lr_slider.valueChanged.connect(self.run_training)
@@ -168,10 +197,10 @@ class PlotWindow(QWidget):
         self.compare_box.addItem("Select run")
         self.compare_box.blockSignals(False)
 
-        self.fig.clear()
+        self.loss_plot.clear()
         self.canvas.draw()
 
-        self.fig2.clear()
+        self.loss_compare_plot.clear()
         self.canvas2.draw()
 
     def on_dataset_change(self):
@@ -194,7 +223,7 @@ class PlotWindow(QWidget):
         return [2, 4, 8, 16][self.features_slider.value()]
 
     def lr(self):
-        return [0.1, 0.01, 0.001, 0.0001][self.lr_slider.value()]
+        return self.lr_values[self.lr_slider.value()]
 
     def loss(self):
         return self.loss_box.currentText()
@@ -278,8 +307,8 @@ class PlotWindow(QWidget):
     # MAIN PLOT
     # ----------------------------
     def plot_current(self, run):
-        self.fig.clear()
-        ax = self.fig.add_subplot(111)
+        self.loss_plot.clear()
+        ax = self.loss_plot.add_subplot(111)
 
         ax.plot(run["epochs"], run["train"], label="Train Loss")
         ax.plot(run["epochs"], run["test"], label="Test Loss")
@@ -304,8 +333,8 @@ class PlotWindow(QWidget):
         selected = self.history[idx]
         current = self.current_run
 
-        self.fig2.clear()
-        ax = self.fig2.add_subplot(111)
+        self.loss_compare_plot.clear()
+        ax = self.loss_compare_plot.add_subplot(111)
 
         ax.plot(current["epochs"], current["train"], label="Current Train Loss")
         ax.plot(current["epochs"], current["test"], label="Current Test Loss")
