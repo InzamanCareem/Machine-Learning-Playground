@@ -2,7 +2,7 @@ import sys
 
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-    QSlider, QComboBox, QLabel, QProgressBar
+    QSlider, QComboBox, QLabel, QProgressBar, QTabWidget
 )
 from PyQt6.QtCore import Qt
 
@@ -23,23 +23,35 @@ class PlotWindow(QWidget):
 
         main_layout = QHBoxLayout()
 
-        controls = QVBoxLayout()
+        config_layout = QVBoxLayout()
+
+        controls_layout = QVBoxLayout()
+
+        tabs = QTabWidget()
+
+        dataset_tab = QWidget()
+        dataset_tab_layout = QVBoxLayout()
+
+        model_tab = QWidget()
+        model_tab_layout = QVBoxLayout()
+
+        progress_layout = QVBoxLayout()
 
         self.dataset = QComboBox()
         self.dataset.addItems(["Regression", "Classification"])
-        controls.addWidget(QLabel("Dataset"))
-        controls.addWidget(self.dataset)
+        dataset_tab_layout.addWidget(QLabel("Dataset"))
+        dataset_tab_layout.addWidget(self.dataset)
         self.dataset.currentIndexChanged.connect(self.on_dataset_change)
 
         self.samples_slider = QSlider(Qt.Orientation.Horizontal)
         self.samples_slider.setRange(0, 4)
-        controls.addWidget(QLabel("Number of Samples"))
-        controls.addWidget(self.samples_slider)
+        dataset_tab_layout.addWidget(QLabel("Number of Samples"))
+        dataset_tab_layout.addWidget(self.samples_slider)
 
         self.features_slider = QSlider(Qt.Orientation.Horizontal)
         self.features_slider.setRange(0, 3)
-        controls.addWidget(QLabel("Number of Features"))
-        controls.addWidget(self.features_slider)
+        dataset_tab_layout.addWidget(QLabel("Number of Features"))
+        dataset_tab_layout.addWidget(self.features_slider)
 
         # ----------------------------
         # LEARNING RATE
@@ -47,8 +59,8 @@ class PlotWindow(QWidget):
         self.lr_slider = QSlider(Qt.Orientation.Horizontal)
         self.lr_slider.setRange(0, 3)
 
-        controls.addWidget(QLabel("Learning Rate"))
-        controls.addWidget(self.lr_slider)
+        model_tab_layout.addWidget(QLabel("Learning Rate"))
+        model_tab_layout.addWidget(self.lr_slider)
 
         # ----------------------------
         # LOSS FUNCTION
@@ -56,8 +68,8 @@ class PlotWindow(QWidget):
         self.loss_box = QComboBox()
         self.loss_box.addItems(["Mean Squared Error", "Mean Absolute Error", "Huber Loss"])
 
-        controls.addWidget(QLabel("Loss Function"))
-        controls.addWidget(self.loss_box)
+        model_tab_layout.addWidget(QLabel("Loss Function"))
+        model_tab_layout.addWidget(self.loss_box)
 
         # ----------------------------
         # OPTIMIZER
@@ -65,8 +77,8 @@ class PlotWindow(QWidget):
         self.opt_box = QComboBox()
         self.opt_box.addItems(["Adam", "SGD", "RMSprop"])
 
-        controls.addWidget(QLabel("Optimizer"))
-        controls.addWidget(self.opt_box)
+        model_tab_layout.addWidget(QLabel("Optimizer"))
+        model_tab_layout.addWidget(self.opt_box)
 
         # ----------------------------
         # PROGRESS BAR
@@ -74,8 +86,8 @@ class PlotWindow(QWidget):
         self.progress = QProgressBar()
         self.progress.setRange(0, 100)
 
-        controls.addWidget(QLabel("Progress"))
-        controls.addWidget(self.progress)
+        progress_layout.addWidget(QLabel("Progress"))
+        progress_layout.addWidget(self.progress)
 
         # ----------------------------
         # COMPARE UI
@@ -85,8 +97,21 @@ class PlotWindow(QWidget):
 
         self.compare_box.currentIndexChanged.connect(self.compare_runs)
 
-        controls.addWidget(QLabel("Compare Runs"))
-        controls.addWidget(self.compare_box)
+        progress_layout.addWidget(QLabel("Compare Runs"))
+        progress_layout.addWidget(self.compare_box)
+
+        dataset_tab.setLayout(dataset_tab_layout)
+        model_tab.setLayout(model_tab_layout)
+
+        tabs.addTab(dataset_tab, "Dataset")
+        tabs.addTab(model_tab, "Model")
+
+        controls_layout.addWidget(tabs)
+
+        config_layout.addLayout(controls_layout, 3)
+        config_layout.addLayout(progress_layout, 1)
+
+        main_layout.addLayout(config_layout, 1)
 
         # ----------------------------
         # PLOTS
@@ -97,13 +122,11 @@ class PlotWindow(QWidget):
         self.fig2 = Figure()
         self.canvas2 = FigureCanvas(self.fig2)
 
-        main_layout.addLayout(controls, 1)
+        canvas_layout = QVBoxLayout()
+        canvas_layout.addWidget(self.canvas)
+        canvas_layout.addWidget(self.canvas2)
 
-        right = QVBoxLayout()
-        right.addWidget(self.canvas)
-        right.addWidget(self.canvas2)
-
-        main_layout.addLayout(right, 3)
+        main_layout.addLayout(canvas_layout, 3)
 
         self.setLayout(main_layout)
 
