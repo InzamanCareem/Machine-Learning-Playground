@@ -40,9 +40,9 @@ class PlotWindow(QWidget):
 
         self.dataset = QComboBox()
         self.dataset.addItems(["Regression", "Classification"])
-        dataset_tab_layout.addWidget(QLabel("Dataset"))
-        dataset_tab_layout.addWidget(self.dataset)
         self.dataset.currentIndexChanged.connect(self.on_dataset_change)
+        config_layout.addWidget(QLabel("Dataset"))
+        config_layout.addWidget(self.dataset)
 
         self.samples_slider = QSlider(Qt.Orientation.Horizontal)
         self.samples_slider.setRange(0, 4)
@@ -53,6 +53,15 @@ class PlotWindow(QWidget):
         self.features_slider.setRange(0, 3)
         dataset_tab_layout.addWidget(QLabel("Number of Features"))
         dataset_tab_layout.addWidget(self.features_slider)
+
+        # ----------------------------
+        # Model Selection
+        # ----------------------------
+        self.model = QComboBox()
+        self.model.addItems(["LinearRegression", "DecisionTreeRegressor", "RandomForestRegressor", "SVR",
+                             "KNeighborsRegressor", "Custom Neural Network"])
+        model_tab_layout.addWidget(QLabel("Model"))
+        model_tab_layout.addWidget(self.model)
 
         # ----------------------------
         # LEARNING RATE
@@ -130,11 +139,11 @@ class PlotWindow(QWidget):
         accuracy_plot_tab = QWidget()
         accuracy_plot_tab_layout = QVBoxLayout()
 
-        validation_curve_tab = QWidget()
-        validation_curve_tab_layout = QVBoxLayout()
-
         learning_curve_tab = QWidget()
         learning_curve_tab_layout = QVBoxLayout()
+
+        validation_curve_tab = QWidget()
+        validation_curve_tab_layout = QVBoxLayout()
 
         self.loss_plot = Figure()
         self.canvas = FigureCanvas(self.loss_plot)
@@ -142,10 +151,15 @@ class PlotWindow(QWidget):
         self.loss_compare_plot = Figure()
         self.canvas2 = FigureCanvas(self.loss_compare_plot)
 
+        self.learning_curve = Figure()
+        self.canvas3 = FigureCanvas(self.learning_curve)
+
         loss_plot_tab_layout.addWidget(self.canvas)
         loss_plot_tab_layout.addWidget(self.canvas2)
-
         loss_plot_tab.setLayout(loss_plot_tab_layout)
+
+        learning_curve_tab_layout.addWidget(self.canvas3)
+        learning_curve_tab.setLayout(learning_curve_tab_layout)
 
         plot_tabs.addTab(loss_plot_tab, "Loss Plot")
         plot_tabs.addTab(accuracy_plot_tab, "Accuracy Plot")
@@ -167,25 +181,33 @@ class PlotWindow(QWidget):
         self.opt_box.currentIndexChanged.connect(self.run_training)
 
     def reset_ui(self):
+        self.model.blockSignals(True)
         self.samples_slider.blockSignals(True)
         self.features_slider.blockSignals(True)
         self.lr_slider.blockSignals(True)
         self.loss_box.blockSignals(True)
         self.opt_box.blockSignals(True)
 
+        self.model.clear()
         self.loss_box.clear()
 
         if self.dataset.currentText() == "Regression":
+            self.model.addItems(["LinearRegression", "DecisionTreeRegressor", "RandomForestRegressor", "SVR",
+                                 "KNeighborsRegressor", "Custom Neural Network"])
             self.loss_box.addItems(["Mean Squared Error", "Mean Absolute Error", "Huber Loss"])
 
         elif self.dataset.currentText() == "Classification":
+            self.model.addItems(["LogisticRegression", "DecisionTreeClassifier", "RandomForestClassifier", "SVC",
+                                 "KNeighborsClassifier", "Custom Neural Network"])
             self.loss_box.addItems(["Binary Cross Entropy"])
 
+        self.model.setCurrentIndex(0)
         self.lr_slider.setValue(0)
         self.loss_box.setCurrentIndex(0)
         self.opt_box.setCurrentIndex(0)
         self.progress.setValue(0)
 
+        self.model.blockSignals(False)
         self.samples_slider.blockSignals(False)
         self.features_slider.blockSignals(False)
         self.lr_slider.blockSignals(False)
@@ -202,6 +224,9 @@ class PlotWindow(QWidget):
 
         self.loss_compare_plot.clear()
         self.canvas2.draw()
+
+        self.learning_curve.clear()
+        self.canvas3.draw()
 
     def on_dataset_change(self):
         self.history.clear()
@@ -252,28 +277,21 @@ class PlotWindow(QWidget):
         self.set_ui(False)
         self.progress.setValue(0)
 
-        self.worker = TrainWorker(self.dataset.currentText(), self.samples(), self.features(), self.lr(), self.loss(),
-                                  self.opt())
+        if self.model.currentText() == "Custom Neural Network":
+            self.worker = TrainWorker.from_dl_model(self.dataset.currentText(), self.samples(), self.features(),
+                                                    self.model.currentText(), self.lr(), self.loss(), self.opt())
+        else:
+            self.worker = TrainWorker.from_ml_model(self.dataset.currentText(), self.samples(), self.features(),
+                                                    self.model.currentText())
+
         self.worker.progress.connect(self.progress.setValue)
-        self.worker.finished.connect(self.save_run)
+        self.worker.run_config.connect(self.save_run)
         self.worker.start()
 
     # ----------------------------
     # SAVE RUN
     # ----------------------------
-    def save_run(self, epochs, train_loss, test_loss):
-        new_run = {
-            "epochs": epochs,
-            "train": train_loss,
-            "test": test_loss,
-            "samples": self.samples(),
-            "features": self.features(),
-            "lr": self.lr(),
-            "loss": self.loss(),
-            "opt": self.opt(),
-            "name": f"{self.loss()} {self.opt()} lr={self.lr()}"
-        }
-
+    def save_run(self, run_config):
         # ----------------------------
         # MOVE OLD CURRENT INTO HISTORY
         # ----------------------------
@@ -286,10 +304,12 @@ class PlotWindow(QWidget):
         # ----------------------------
         # SET NEW CURRENT RUN
         # ----------------------------
-        self.current_run = new_run
+        self.current_run = run_config
 
         self.update_dropdown()
-        self.plot_current(new_run)
+        # TODO: give a list of included plots for each model?
+        self.plot_current(run_config)
+        # self.plot_learning_curve(run_config)
 
         self.set_ui(True)
 
@@ -310,8 +330,8 @@ class PlotWindow(QWidget):
         self.loss_plot.clear()
         ax = self.loss_plot.add_subplot(111)
 
-        ax.plot(run["epochs"], run["train"], label="Train Loss")
-        ax.plot(run["epochs"], run["test"], label="Test Loss")
+        ax.plot(run["epochs"], run["train_loss"], label="Train Loss")
+        ax.plot(run["epochs"], run["test_loss"], label="Test Loss")
 
         ax.set_title("Current Run")
         ax.set_ylabel("Loss")
@@ -336,11 +356,11 @@ class PlotWindow(QWidget):
         self.loss_compare_plot.clear()
         ax = self.loss_compare_plot.add_subplot(111)
 
-        ax.plot(current["epochs"], current["train"], label="Current Train Loss")
-        ax.plot(current["epochs"], current["test"], label="Current Test Loss")
+        ax.plot(current["epochs"], current["train_loss"], label="Current Train Loss")
+        ax.plot(current["epochs"], current["test_loss"], label="Current Test Loss")
 
-        ax.plot(selected["epochs"], selected["train"], "--", label="Selected Train Loss")
-        ax.plot(selected["epochs"], selected["test"], "--", label="Selected Test Loss")
+        ax.plot(selected["epochs"], selected["train_loss"], "--", label="Selected Train Loss")
+        ax.plot(selected["epochs"], selected["test_loss"], "--", label="Selected Test Loss")
 
         ax.set_title("Comparison")
         ax.set_ylabel("Loss")
@@ -350,6 +370,22 @@ class PlotWindow(QWidget):
         ax.grid()
 
         self.canvas2.draw()
+
+    def plot_learning_curve(self, run):
+        self.learning_curve.clear()
+        ax = self.learning_curve.add_subplot(111)
+
+        ax.plot(run["train_sizes"], run["train_mean"], label="Training")
+        ax.plot(run["train_sizes"], run["val_mean"], label="Validation")
+
+        ax.set_title("Learning Curve")
+        ax.set_ylabel("Scoring")
+        ax.set_xlabel("Training dataset size")
+
+        ax.legend()
+        ax.grid()
+
+        self.canvas3.draw()
 
 
 # ----------------------------

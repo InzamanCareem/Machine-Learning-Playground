@@ -1,6 +1,12 @@
+import numpy as np
 from sklearn.datasets import make_regression, make_classification
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.svm import SVR, SVC
+from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, learning_curve
 from sklearn.preprocessing import StandardScaler
 import torch
 import torch.nn as nn
@@ -18,12 +24,15 @@ def get_data(dataset_type, n_samples, n_features):
                                    n_repeated=0, n_classes=2, shuffle=False, random_state=42)
         return data[0], data[1]
 
+    # TODO: Add many datasets
+
 
 def make_train_test(X, y):
     return train_test_split(X, y, test_size=0.2, random_state=42)
 
 
 def preprocess(X_train, X_test, y_train, y_test):
+    # TODO: Add many scalers
     scaler = StandardScaler()
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.transform(X_test)
@@ -36,25 +45,29 @@ def preprocess(X_train, X_test, y_train, y_test):
     return X_train, X_test, y_train, y_test
 
 
-def make_model(dataset_type, features):
-    if dataset_type == "Regression":
-        class LinearRegressionModel(nn.Module):
-            def __init__(self):
-                super().__init__()
-                self.layer = nn.Sequential(
-                    nn.Linear(features, 32),
-                    nn.ReLU(),
-                    nn.Linear(32, 16),
-                    nn.ReLU(),
-                    nn.Linear(16, 1)
-                )
+def make_model(dataset, model, features):
+    if dataset == "Regression":
+        if model == "LinearRegression":
+            return LinearRegression()
 
-            def forward(self, x):
-                return self.layer(x)
+        elif model == "Custom Neural Network":
+            class LinearRegressionModel(nn.Module):
+                def __init__(self):
+                    super().__init__()
+                    self.layer = nn.Sequential(
+                        nn.Linear(features, 32),
+                        nn.ReLU(),
+                        nn.Linear(32, 16),
+                        nn.ReLU(),
+                        nn.Linear(16, 1)
+                    )
 
-        return LinearRegressionModel()
+                def forward(self, x):
+                    return self.layer(x)
 
-    elif dataset_type == "Classification":
+            return LinearRegressionModel()
+
+    elif dataset == "Classification":
         class BinaryClassificationModel(nn.Module):
             def __init__(self):
                 super().__init__()
@@ -70,6 +83,12 @@ def make_model(dataset_type, features):
                 return self.layer(x)
 
         return BinaryClassificationModel()
+
+
+def make_learning_curve(model, X, y):
+    # TODO: add ComboBox for scoring
+    return learning_curve(model, X, y, cv=5, scoring="neg_root_mean_squared_error",
+                          train_sizes=np.linspace(0.1, 1, 10))
 
 
 def get_loss_func(loss_name):
