@@ -108,7 +108,8 @@ class PlotWindow(QWidget):
         self.compare_box = QComboBox()
         self.compare_box.addItem("Select run")
 
-        self.compare_box.currentIndexChanged.connect(self.compare_runs)
+        self.compare_box.currentIndexChanged.connect(self.compare_loss_curves)
+        self.compare_box.currentIndexChanged.connect(self.compare_accuracy_curves)
 
         progress_layout.addWidget(QLabel("Compare Runs"))
         progress_layout.addWidget(self.compare_box)
@@ -151,14 +152,24 @@ class PlotWindow(QWidget):
         self.loss_compare_plot = Figure()
         self.canvas2 = FigureCanvas(self.loss_compare_plot)
 
+        self.accuracy_plot = Figure()
+        self.canvas3 = FigureCanvas(self.accuracy_plot)
+
+        self.accuracy_compare_plot = Figure()
+        self.canvas4 = FigureCanvas(self.accuracy_compare_plot)
+
         self.learning_curve = Figure()
-        self.canvas3 = FigureCanvas(self.learning_curve)
+        self.canvas5 = FigureCanvas(self.learning_curve)
 
         loss_plot_tab_layout.addWidget(self.canvas)
         loss_plot_tab_layout.addWidget(self.canvas2)
         loss_plot_tab.setLayout(loss_plot_tab_layout)
 
-        learning_curve_tab_layout.addWidget(self.canvas3)
+        accuracy_plot_tab_layout.addWidget(self.canvas3)
+        accuracy_plot_tab_layout.addWidget(self.canvas4)
+        accuracy_plot_tab.setLayout(accuracy_plot_tab_layout)
+
+        learning_curve_tab_layout.addWidget(self.canvas5)
         learning_curve_tab.setLayout(learning_curve_tab_layout)
 
         plot_tabs.addTab(loss_plot_tab, "Loss Plot")
@@ -225,8 +236,14 @@ class PlotWindow(QWidget):
         self.loss_compare_plot.clear()
         self.canvas2.draw()
 
-        self.learning_curve.clear()
+        self.accuracy_plot.clear()
         self.canvas3.draw()
+
+        self.accuracy_compare_plot.clear()
+        self.canvas4.draw()
+
+        self.learning_curve.clear()
+        self.canvas5.draw()
 
     def on_dataset_change(self):
         self.history.clear()
@@ -307,9 +324,14 @@ class PlotWindow(QWidget):
         self.current_run = run_config
 
         self.update_dropdown()
-        # TODO: give a list of included plots for each model?
-        self.plot_current(run_config)
-        # self.plot_learning_curve(run_config)
+
+        if run_config["model_type"] == "dlr":
+            self.plot_loss_curve(run_config)
+        elif run_config["model_type"] == "dlc":
+            self.plot_loss_curve(run_config)
+            self.plot_accuracy_curve(run_config)
+        else:
+            self.plot_learning_curve(run_config)
 
         self.set_ui(True)
 
@@ -326,7 +348,7 @@ class PlotWindow(QWidget):
     # ----------------------------
     # MAIN PLOT
     # ----------------------------
-    def plot_current(self, run):
+    def plot_loss_curve(self, run):
         self.loss_plot.clear()
         ax = self.loss_plot.add_subplot(111)
 
@@ -345,7 +367,7 @@ class PlotWindow(QWidget):
     # ----------------------------
     # COMPARE
     # ----------------------------
-    def compare_runs(self):
+    def compare_loss_curves(self):
         idx = self.compare_box.currentIndex() - 1
         if idx < 0 or idx >= len(self.history):
             return
@@ -371,6 +393,48 @@ class PlotWindow(QWidget):
 
         self.canvas2.draw()
 
+    def plot_accuracy_curve(self, run):
+        self.accuracy_plot.clear()
+        ax = self.accuracy_plot.add_subplot(111)
+
+        ax.plot(run["epochs"], run["train_accuracy"], label="Train Accuracy")
+        ax.plot(run["epochs"], run["test_accuracy"], label="Test Accuracy")
+
+        ax.set_title("Current Run")
+        ax.set_ylabel("Accuracy")
+        ax.set_xlabel("Epochs")
+
+        ax.legend()
+        ax.grid()
+
+        self.canvas3.draw()
+
+    def compare_accuracy_curves(self):
+        idx = self.compare_box.currentIndex() - 1
+        if idx < 0 or idx >= len(self.history):
+            return
+
+        selected = self.history[idx]
+        current = self.current_run
+
+        self.accuracy_compare_plot.clear()
+        ax = self.accuracy_compare_plot.add_subplot(111)
+
+        ax.plot(current["epochs"], current["train_accuracy"], label="Current Train Accuracy")
+        ax.plot(current["epochs"], current["test_accuracy"], label="Current Test Accuracy")
+
+        ax.plot(selected["epochs"], selected["train_accuracy"], "--", label="Selected Train Accuracy")
+        ax.plot(selected["epochs"], selected["test_accuracy"], "--", label="Selected Test Accuracy")
+
+        ax.set_title("Comparison")
+        ax.set_ylabel("Accuracy")
+        ax.set_xlabel("Epochs")
+
+        ax.legend()
+        ax.grid()
+
+        self.canvas4.draw()
+
     def plot_learning_curve(self, run):
         self.learning_curve.clear()
         ax = self.learning_curve.add_subplot(111)
@@ -385,7 +449,7 @@ class PlotWindow(QWidget):
         ax.legend()
         ax.grid()
 
-        self.canvas3.draw()
+        self.canvas5.draw()
 
 
 # ----------------------------

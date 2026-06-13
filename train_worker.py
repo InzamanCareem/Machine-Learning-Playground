@@ -35,7 +35,7 @@ class TrainWorker(QThread):
         return cls(dataset=dataset, samples=samples, features=features, model=model, lr=lr, loss_name=loss_name,
                    optimizer_name=optimizer_name)
 
-    def load_dataset(self):
+    def _load_dataset(self):
         X, y = get_data(self.dataset, self.samples, self.features)
         self.X = X
         self.y = y
@@ -48,21 +48,11 @@ class TrainWorker(QThread):
         self.y_test = y_test
 
     def run(self):
-        self.load_dataset()
+        self._load_dataset()
 
         model = make_model(self.dataset, self.model, self.features)
 
         if self.dataset == "Regression":
-            if self.model == "LinearRegression":
-                train_sizes, train_scores, val_scores = make_learning_curve(model, self.X, self.y)
-
-                self.run_config.emit({
-                    "train_sizes": train_sizes,
-                    "train_mean": train_scores.mean(axis=1),
-                    "val_mean": val_scores.mean(axis=1),
-                    "name": ""
-                })
-
             if self.model == "Custom Neural Network":
                 loss_fn = get_loss_func(self.loss_name)
                 opt = get_optimizer(self.optimizer_name, self.lr, model)
@@ -74,11 +64,23 @@ class TrainWorker(QThread):
                     "epochs": epoch_count,
                     "train_loss": train_loss,
                     "test_loss": test_loss,
+                    "model_type": "dlr",
+                    "name": ""
+                })
+
+            else:
+                train_sizes, train_scores, val_scores = make_learning_curve(model, self.X, self.y,
+                                                                            "neg_root_mean_squared_error")
+
+                self.run_config.emit({
+                    "train_sizes": train_sizes,
+                    "train_mean": train_scores.mean(axis=1),
+                    "val_mean": val_scores.mean(axis=1),
+                    "model_type": "ml",
                     "name": ""
                 })
 
         if self.dataset == "Classification":
-
             if self.model == "Custom Neural Network":
                 loss_fn = get_loss_func(self.loss_name)
                 opt = get_optimizer(self.optimizer_name, self.lr, model)
@@ -94,5 +96,17 @@ class TrainWorker(QThread):
                     "test_loss": test_loss,
                     "train_accuracy": train_accuracy,
                     "test_accuracy": test_accuracy,
+                    "model_type": "dlc",
+                    "name": ""
+                })
+
+            else:
+                train_sizes, train_scores, val_scores = make_learning_curve(model, self.X, self.y, "accuracy")
+
+                self.run_config.emit({
+                    "train_sizes": train_sizes,
+                    "train_mean": train_scores.mean(axis=1),
+                    "val_mean": val_scores.mean(axis=1),
+                    "model_type": "ml",
                     "name": ""
                 })

@@ -16,12 +16,12 @@ import torch.optim as optim
 def get_data(dataset_type, n_samples, n_features):
     if dataset_type == "Regression":
         data = make_regression(n_samples=n_samples, n_features=n_features, n_informative=n_features, n_targets=1,
-                               shuffle=False, random_state=42)
+                               shuffle=True, random_state=42)
         return data[0], data[1]
 
     elif dataset_type == "Classification":
         data = make_classification(n_samples=n_samples, n_features=n_features, n_informative=n_features, n_redundant=0,
-                                   n_repeated=0, n_classes=2, shuffle=False, random_state=42)
+                                   n_repeated=0, n_classes=2, shuffle=True, random_state=42)
         return data[0], data[1]
 
     # TODO: Add many datasets
@@ -49,7 +49,14 @@ def make_model(dataset, model, features):
     if dataset == "Regression":
         if model == "LinearRegression":
             return LinearRegression()
-
+        elif model == "DecisionTreeRegressor":
+            return DecisionTreeRegressor()
+        elif model == "RandomForestRegressor":
+            return RandomForestRegressor()
+        elif model == "SVR":
+            return SVR()
+        elif model == "KNeighborsRegressor":
+            return KNeighborsRegressor()
         elif model == "Custom Neural Network":
             class LinearRegressionModel(nn.Module):
                 def __init__(self):
@@ -68,27 +75,37 @@ def make_model(dataset, model, features):
             return LinearRegressionModel()
 
     elif dataset == "Classification":
-        class BinaryClassificationModel(nn.Module):
-            def __init__(self):
-                super().__init__()
-                self.layer = nn.Sequential(
-                    nn.Linear(features, 32),
-                    nn.ReLU(),
-                    nn.Linear(32, 16),
-                    nn.ReLU(),
-                    nn.Linear(16, 1),
-                )
+        if model == "LogisticRegression":
+            return LogisticRegression()
+        elif model == "DecisionTreeClassifier":
+            return DecisionTreeClassifier()
+        elif model == "RandomForestClassifier":
+            return RandomForestClassifier()
+        elif model == "SVC":
+            return SVC()
+        elif model == "KNeighborsClassifier":
+            return KNeighborsClassifier()
+        elif model == "Custom Neural Network":
+            class BinaryClassificationModel(nn.Module):
+                def __init__(self):
+                    super().__init__()
+                    self.layer = nn.Sequential(
+                        nn.Linear(features, 32),
+                        nn.ReLU(),
+                        nn.Linear(32, 16),
+                        nn.ReLU(),
+                        nn.Linear(16, 1),
+                    )
 
-            def forward(self, x):
-                return self.layer(x)
+                def forward(self, x):
+                    return self.layer(x)
 
-        return BinaryClassificationModel()
+            return BinaryClassificationModel()
 
 
-def make_learning_curve(model, X, y):
+def make_learning_curve(model, X, y, scoring):
     # TODO: add ComboBox for scoring
-    return learning_curve(model, X, y, cv=5, scoring="neg_root_mean_squared_error",
-                          train_sizes=np.linspace(0.1, 1, 10))
+    return learning_curve(model, X, y, cv=5, scoring=scoring, train_sizes=np.linspace(0.1, 1, 10))
 
 
 def get_loss_func(loss_name):
