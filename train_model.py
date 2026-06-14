@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from sklearn.svm import SVR, SVC
 from sklearn.neighbors import KNeighborsRegressor, KNeighborsClassifier
 from sklearn.metrics import accuracy_score
-from sklearn.model_selection import train_test_split, learning_curve
+from sklearn.model_selection import train_test_split, learning_curve, validation_curve
 from sklearn.preprocessing import StandardScaler
 import torch
 import torch.nn as nn
@@ -106,6 +106,10 @@ def make_model(dataset, model, features):
 def make_learning_curve(model, X, y, scoring):
     # TODO: add ComboBox for scoring
     return learning_curve(model, X, y, cv=5, scoring=scoring, train_sizes=np.linspace(0.1, 1, 10))
+
+
+def make_validation_curve(model, X, y, param_name, param_range, scoring):
+    return validation_curve(model, X, y, param_name=param_name, param_range=param_range, cv=5, scoring=scoring)
 
 
 def get_loss_func(loss_name):

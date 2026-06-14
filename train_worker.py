@@ -7,7 +7,8 @@ class TrainWorker(QThread):
     run_config = pyqtSignal(dict)
     progress = pyqtSignal(int)
 
-    def __init__(self, dataset, samples, features, model, lr=None, loss_name=None, optimizer_name=None):
+    def __init__(self, dataset, samples, features, model, lr=None, loss_name=None,
+                 optimizer_name=None):
         super().__init__()
 
         self.dataset = dataset
@@ -69,18 +70,28 @@ class TrainWorker(QThread):
                 })
 
             else:
-                train_sizes, train_scores, val_scores = make_learning_curve(model, self.X, self.y,
-                                                                            "neg_root_mean_squared_error")
+                lc_train_sizes, lc_train_scores, lc_val_scores = make_learning_curve(model, self.X, self.y,
+                                                                                     "neg_root_mean_squared_error")
+
+                param_range = np.arange(1, 21)
+
+                vc_train_scores, vc_test_scores = make_validation_curve(model, self.X, self.y, "max_depth",
+                                                                        param_range, "neg_root_mean_squared_error")
 
                 self.run_config.emit({
-                    "train_sizes": train_sizes,
-                    "train_mean": train_scores.mean(axis=1),
-                    "val_mean": val_scores.mean(axis=1),
+                    "lc_train_sizes": lc_train_sizes,
+                    "lc_train_mean": lc_train_scores.mean(axis=1),
+                    "lc_val_mean": lc_val_scores.mean(axis=1),
+                    "vc_train_mean": vc_train_scores.mean(axis=1),
+                    "vc_train_std": vc_train_scores.std(axis=1),
+                    "vc_test_mean": vc_test_scores.mean(axis=1),
+                    "vc_test_std": vc_test_scores.std(axis=1),
+                    "param_range": param_range,
                     "model_type": "ml",
                     "name": ""
                 })
 
-        if self.dataset == "Classification":
+        elif self.dataset == "Classification":
             if self.model == "Custom Neural Network":
                 loss_fn = get_loss_func(self.loss_name)
                 opt = get_optimizer(self.optimizer_name, self.lr, model)
@@ -102,7 +113,7 @@ class TrainWorker(QThread):
 
             else:
                 train_sizes, train_scores, val_scores = make_learning_curve(model, self.X, self.y, "accuracy")
-
+                # TODO: change values
                 self.run_config.emit({
                     "train_sizes": train_sizes,
                     "train_mean": train_scores.mean(axis=1),
