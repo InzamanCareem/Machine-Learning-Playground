@@ -73,8 +73,7 @@ class TrainWorker(QThread):
                 lc_train_sizes, lc_train_scores, lc_val_scores = make_learning_curve(model, self.X, self.y,
                                                                                      "neg_root_mean_squared_error")
 
-                param_range = np.arange(1, 21)
-
+                param_range = [3, 5, 10, 20]
                 vc_train_scores, vc_test_scores = make_validation_curve(model, self.X, self.y, "max_depth",
                                                                         param_range, "neg_root_mean_squared_error")
 

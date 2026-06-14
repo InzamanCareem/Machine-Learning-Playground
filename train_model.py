@@ -50,9 +50,9 @@ def make_model(dataset, model, features):
         if model == "LinearRegression":
             return LinearRegression()
         elif model == "DecisionTreeRegressor":
-            return DecisionTreeRegressor()
+            return DecisionTreeRegressor(random_state=42)
         elif model == "RandomForestRegressor":
-            return RandomForestRegressor()
+            return RandomForestRegressor(random_state=42)
         elif model == "SVR":
             return SVR()
         elif model == "KNeighborsRegressor":

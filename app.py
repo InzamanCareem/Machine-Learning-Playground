@@ -20,7 +20,7 @@ class PlotWindow(QWidget):
 
     def _load_decision_tree_regression_parameters(self):
         self.max_depth_slider.setRange(0, 3)
-        self.max_depth_values = [3, 5, 10, None]
+        self.max_depth_values = [3, 5, 10, 20]
 
         self.model_tab_parameter_layout.addWidget(QLabel("Max Depth"))
         self.model_tab_parameter_layout.addWidget(self.max_depth_slider)
@@ -37,7 +37,7 @@ class PlotWindow(QWidget):
         self.model_tab_parameter_layout.addWidget(QLabel("Min Samples Leaf"))
         self.model_tab_parameter_layout.addWidget(self.min_samples_leaf_slider)
 
-    def _load_custom_neural_network_parameters(self):
+    def _load_custom_neural_network_regressor_parameters(self):
         self.lr_slider.setRange(0, 15)
         start = 1
         end = 4
@@ -278,6 +278,10 @@ class PlotWindow(QWidget):
         self.learning_curve.clear()
         self.learning_curve_canvas.draw()
 
+        self.validation_curve.clear()
+        self.validation_curve_canvas.draw()
+
+    # TODO: on_dataset_type_change()
     def on_dataset_change(self):
         self.history.clear()
         self.current_run = None
@@ -287,6 +291,8 @@ class PlotWindow(QWidget):
         self.reset_ui()
 
         self.setEnabled(True)
+
+    # TODO: on_dataset_change()
 
     def on_model_change(self):
         self.setEnabled(False)
@@ -304,8 +310,8 @@ class PlotWindow(QWidget):
             self._load_linear_regression_parameters()
         elif self.model.currentText() == "DecisionTreeRegressor":
             self._load_decision_tree_regression_parameters()
-        elif self.model.currentText() == "Custom Neural Network":
-            self._load_custom_neural_network_parameters()
+        elif self.model.currentText() == "Custom Neural Network Regressor":
+            self._load_custom_neural_network_regressor_parameters()
 
         self.max_depth_slider.setValue(0)
         self.min_samples_split_slider.setValue(0)
@@ -475,15 +481,10 @@ class PlotWindow(QWidget):
         self.learning_curve.clear()
         ax = self.learning_curve.add_subplot(111)
 
-        ax.plot(run["train_sizes"], run["train_mean"], label="Training")
-        ax.plot(run["train_sizes"], run["val_mean"], label="Validation")
-
-        ax.set_title("Learning Curve")
-        ax.set_ylabel("Scoring")
-        ax.set_xlabel("Training dataset size")
-
-        ax.legend()
-        ax.grid()
+        plot_curves(ax, run["lc_train_sizes"],
+                    [(run["lc_train_mean"], "Training", "-"),
+                     (run["lc_val_mean"], "Validation", "-")],
+                    title="Learning Curve", x_label="Training dataset size", y_label="Scoring")
 
         self.learning_curve_canvas.draw()
 
