@@ -1,6 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QTabWidget, QLabel
 
-from training_controller import TrainingController
 from run_manager import RunManager
 from dataset_controls import DatasetControls
 from model_controls import ModelControls
@@ -51,6 +50,10 @@ class PlotWindow(QWidget):
 
         self.setLayout(main_layout)
 
+        self.rm = RunManager(self.dc, self.mc, self.ptp)
+
+        self.rm.run()
+
     def reset_ui(self):
         self.mc.model.blockSignals(True)
         self.dc.samples_slider.blockSignals(True)
@@ -95,8 +98,8 @@ class PlotWindow(QWidget):
         self.ptp.validation_curve_canvas.draw()
 
     def on_dataset_change(self):
-        # self.history.clear()
-        # self.current_run = None
+        self.rm.history.clear()
+        self.rm.current_run = None
 
         self.setEnabled(False)
 
@@ -111,9 +114,9 @@ class PlotWindow(QWidget):
         self.mc.min_samples_split_slider.blockSignals(True)
         self.mc.min_samples_leaf_slider.blockSignals(True)
 
-        self.mc.lr_slider.blockSignals(True)
-        self.mc.loss_box.blockSignals(True)
-        self.mc.opt_box.blockSignals(True)
+        # self.mc.lr_slider.blockSignals(True)
+        # self.mc.loss_box.blockSignals(True)
+        # self.mc.opt_box.blockSignals(True)
 
         self.mc.clear_layout()
         if self.mc.model.currentText() == "LinearRegression":
@@ -126,9 +129,9 @@ class PlotWindow(QWidget):
         self.mc.max_depth_slider.setValue(0)
         self.mc.min_samples_split_slider.setValue(0)
         self.mc.min_samples_leaf_slider.setValue(0)
-        self.mc.lr_slider.setValue(0)
-        self.mc.loss_box.setCurrentIndex(0)
-        self.mc.opt_box.setCurrentIndex(0)
+        # self.mc.lr_slider.setValue(0)
+        # self.mc.loss_box.setCurrentIndex(0)
+        # self.mc.opt_box.setCurrentIndex(0)
 
         self.prp.progress.setValue(0)
 
@@ -136,21 +139,8 @@ class PlotWindow(QWidget):
         self.mc.min_samples_split_slider.blockSignals(False)
         self.mc.min_samples_leaf_slider.blockSignals(False)
 
-        self.mc.lr_slider.blockSignals(False)
-        self.mc.loss_box.blockSignals(False)
-        self.mc.opt_box.blockSignals(False)
+        # self.mc.lr_slider.blockSignals(False)
+        # self.mc.loss_box.blockSignals(False)
+        # self.mc.opt_box.blockSignals(False)
 
         self.setEnabled(True)
-
-    def samples(self):
-        return [100, 500, 1000, 5000, 10000][self.dc.samples_slider.value()]
-
-    def features(self):
-        return [2, 4, 8, 16][self.dc.features_slider.value()]
-
-    def set_ui(self, state):
-        self.dc.samples_slider.setEnabled(state)
-        self.dc.features_slider.setEnabled(state)
-        self.mc.lr_slider.setEnabled(state)
-        self.mc.loss_box.setEnabled(state)
-        self.mc.opt_box.setEnabled(state)

@@ -9,9 +9,6 @@ class DatasetControls:
 
         self.dataset = QComboBox()
         self.dataset.addItems(["Regression", "Classification"])
-        # self.dataset.currentIndexChanged.connect(self.on_dataset_change)
-        # config_layout.addWidget(QLabel("Dataset"))
-        # config_layout.addWidget(self.dataset)
 
         self.samples_slider = QSlider(Qt.Orientation.Horizontal)
         self.samples_slider.setRange(0, 4)
@@ -24,3 +21,15 @@ class DatasetControls:
         self.dataset_tab_layout.addWidget(self.features_slider)
 
         self.dataset_tab.setLayout(self.dataset_tab_layout)
+
+    def get_dataset(self):
+        return self.dataset
+
+    def get_controls(self):
+        return [self.samples_slider, self.features_slider]
+
+    def samples(self):
+        return [100, 500, 1000, 5000, 10000][self.samples_slider.value()]
+
+    def features(self):
+        return [2, 4, 8, 16][self.features_slider.value()]

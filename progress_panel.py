@@ -17,9 +17,9 @@ class ProgressPanel:
         self.progress_layout.addWidget(QLabel("Compare Runs"))
         self.progress_layout.addWidget(self.compare_box)
 
-    def update_dropdown(self):
+    def update_dropdown(self, history):
         self.compare_box.clear()
         self.compare_box.addItem("Select run")
 
-        for i, r in enumerate(self.history):
+        for i, r in enumerate(history):
             self.compare_box.addItem(f"Run {i + 1}: {r['name']}")

@@ -36,6 +36,12 @@ class ModelControls:
         self.loss_box = QComboBox()
         self.opt_box = QComboBox()
 
+    def get_model(self):
+        return self.model
+
+    def get_controls(self):
+        return [self.max_depth_slider, self.min_samples_split_slider, self.min_samples_leaf_slider]
+
     def load_linear_regression_parameters(self):
         pass
 
