@@ -1,92 +1,65 @@
-import numpy as np
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QComboBox, QLabel, QSlider, QWidget, QVBoxLayout
+from PyQt6.QtWidgets import QSlider, QLabel, QWidget, QVBoxLayout, QComboBox
+
+from train_worker import TrainWorker
 
 
 class ModelControls:
-    def __init__(self):
-        self.model_tab = QWidget()
+    def __init__(self, control_tabs, threadpool, plot_panel, progress_panel):
+        self.control_tabs = control_tabs
+        self.threadpool = threadpool
+        self.plot_panel = plot_panel
+        self.progress_panel = progress_panel
+
+        self.tab = QWidget()
+        self.tab_layout = QVBoxLayout()
+
         self.model_tab_layout = QVBoxLayout()
-        self.model_tab_model_layout = QVBoxLayout()
-        self.model_tab_parameter_layout = QVBoxLayout()
+        self.model_parameter_tab_layout = QVBoxLayout()
 
         self.model = QComboBox()
-        self.model.addItems(["LinearRegression", "DecisionTreeRegressor", "RandomForestRegressor", "SVR",
-                             "KNeighborsRegressor", "Custom Neural Network"])
-
+        self.model.addItems(["Linear Regression", "Decision Tree Regressor", "Random Forest Regressor", "SVR",
+                             "KNeighbors Regressor", "Custom Neural Network Regressor"])
         # self.model.currentIndexChanged.connect(self.on_model_change)
-        self.model_tab_model_layout.addWidget(QLabel("Model"))
-        self.model_tab_model_layout.addWidget(self.model)
 
-        self.model_tab_layout.addLayout(self.model_tab_model_layout)
-        self.model_tab_layout.addStretch(0)
-        self.model_tab_layout.addLayout(self.model_tab_parameter_layout, 1)
+        self.depth_slider = QSlider(Qt.Orientation.Horizontal)
+        self.depth_slider.setRange(0, 2)
+        # self.depth_slider.valueChanged.connect(self.on_model_change)
 
-        self.model_tab.setLayout(self.model_tab_layout)
+        self._set_tab()
 
-        # ----------------------------
-        # HYPERPARAMETERS
-        # ----------------------------
+    def _set_tab(self):
+        self.model_tab_layout.addWidget(QLabel("Model"))
+        self.model_tab_layout.addWidget(self.model)
 
-        self.max_depth_slider = QSlider(Qt.Orientation.Horizontal)
-        self.min_samples_split_slider = QSlider(Qt.Orientation.Horizontal)
-        self.min_samples_leaf_slider = QSlider(Qt.Orientation.Horizontal)
+        self.model_parameter_tab_layout.addWidget(QLabel("Depth Slider"))
+        self.model_parameter_tab_layout.addWidget(self.depth_slider)
 
-        self.lr_slider = QSlider(Qt.Orientation.Horizontal)
-        self.loss_box = QComboBox()
-        self.opt_box = QComboBox()
+        self.tab_layout.addLayout(self.model_tab_layout)
+        self.tab_layout.addStretch(0)
+        self.tab_layout.addLayout(self.model_parameter_tab_layout, 1)
 
-    def get_model(self):
-        return self.model
+        self.tab.setLayout(self.tab_layout)
 
-    def get_controls(self):
-        return [self.max_depth_slider, self.min_samples_split_slider, self.min_samples_leaf_slider]
+        self.control_tabs.addTab(self.tab, "Model")
 
-    def load_linear_regression_parameters(self):
-        pass
+    def reset_values(self, dataset_type):
+        self.model.clear()
+        if dataset_type == "Regression":
+            self.model.addItems(["Linear Regression", "Decision Tree Regressor", "Random Forest Regressor", "SVR",
+                             "KNeighbors Regressor", "Custom Neural Network Regressor"])
+        elif dataset_type == "Classification":
+            self.model.addItems((["Logistic Regression", "Decision Tree Classifier", "Random Forest Classifier", "SVC",
+                                 "KNeighbors Classifier", "Custom Neural Network Classifier"]))
 
-    def load_decision_tree_regression_parameters(self):
-        self.max_depth_slider.setRange(0, 3)
-        max_depth_values = [3, 5, 10, 20]
+        self.model.setCurrentIndex(0)
 
-        self.model_tab_parameter_layout.addWidget(QLabel("Max Depth"))
-        self.model_tab_parameter_layout.addWidget(self.max_depth_slider)
+    def on_model_change(self):
+        print("This is the model")
 
-        self.min_samples_split_slider.setRange(0, 2)
-        min_samples_split_values = [2, 5, 10]
+        train_worker = TrainWorker()
 
-        self.model_tab_parameter_layout.addWidget(QLabel("Min Samples Split"))
-        self.model_tab_parameter_layout.addWidget(self.min_samples_split_slider)
+        train_worker.signals.run_config.connect(self.plot_panel.plot_curve)
+        train_worker.signals.run_config.connect(self.progress_panel.save_run)
 
-        self.min_samples_leaf_slider.setRange(0, 2)
-        min_samples_leaf_values = [1, 2, 4]
-
-        self.model_tab_parameter_layout.addWidget(QLabel("Min Samples Leaf"))
-        self.model_tab_parameter_layout.addWidget(self.min_samples_leaf_slider)
-
-    def load_custom_neural_network_regressor_parameters(self):
-        self.lr_slider.setRange(0, 15)
-        start = 1
-        end = 4
-        lr_values = np.logspace(-start, -end, num=(end - start) * 5 + 1)
-
-        self.model_tab_parameter_layout.addWidget(QLabel("Learning Rate"))
-        self.model_tab_parameter_layout.addWidget(self.lr_slider)
-
-        self.loss_box.addItems(["Mean Squared Error", "Mean Absolute Error", "Huber Loss"])
-
-        self.model_tab_parameter_layout.addWidget(QLabel("Loss Function"))
-        self.model_tab_parameter_layout.addWidget(self.loss_box)
-
-        self.opt_box.addItems(["Adam", "SGD", "RMSprop"])
-
-        self.model_tab_parameter_layout.addWidget(QLabel("Optimizer"))
-        self.model_tab_parameter_layout.addWidget(self.opt_box)
-
-    def clear_layout(self):
-        while self.model_tab_parameter_layout.count():
-            item = self.model_tab_parameter_layout.takeAt(0)
-
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
+        self.threadpool.start(train_worker)
