@@ -76,7 +76,7 @@ class DatasetControls:
     def on_dataset_change(self):
         print("This is the dataset")
         self.samples_slider_label.setText(str(self.samples()) + " Samples")
-        self.samples_slider_label.setText(str(self.features()) + " Features")
+        self.features_slider_label.setText(str(self.features()) + " Features")
 
         self.run_manager.load_dataset(self.dataset_type, self.samples(), self.features())
 

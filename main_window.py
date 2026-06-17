@@ -5,7 +5,7 @@ from run_manager import RunManager
 from dataset_type_controls import DatasetTypeControls
 from dataset_controls import DatasetControls
 from model_controls import ModelControls
-from plots_panel import PlotPanel
+from plots_panel import PlotsPanel
 from progress_panel import ProgressPanel
 
 
@@ -27,15 +27,16 @@ class MainWindow(QWidget):
         progress_layout = QVBoxLayout()
 
         # self.threadpool = QThreadPool()
-        self.run_manager = RunManager()
 
-        self.plot_panel = PlotPanel(canvas_tabs)
+        self.plots_panel = PlotsPanel(canvas_tabs)
 
-        self.progress_panel = ProgressPanel(progress_layout, self.plot_panel)
+        self.progress_panel = ProgressPanel(progress_layout, self.plots_panel)
+
+        self.run_manager = RunManager(self.plots_panel)
 
         self.dataset_type_controls = DatasetTypeControls(control_panel_layout, self.progress_panel, self.reset_ui)
-        self.dataset_controls = DatasetControls(control_tabs, self.run_manager, self.plot_panel, self.progress_panel)
-        self.model_controls = ModelControls(control_tabs, self.run_manager, self.plot_panel, self.progress_panel)
+        self.dataset_controls = DatasetControls(control_tabs, self.run_manager, self.plots_panel, self.progress_panel)
+        self.model_controls = ModelControls(control_tabs, self.run_manager, self.plots_panel, self.progress_panel)
 
         self.progress_panel.set_layout()
 

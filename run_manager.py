@@ -1,11 +1,13 @@
 from PyQt6.QtCore import QThreadPool
 
 from train_worker import TrainWorker
-from train_model import *
+from train_model import get_data, make_train_test, preprocess, make_model
 
 
 class RunManager:
-    def __init__(self):
+    def __init__(self, plot_panel):
+        self.plot_panel = plot_panel
+
         self.threadpool = QThreadPool()
 
         self.X = None
@@ -18,10 +20,6 @@ class RunManager:
 
         self.model = None
 
-        # load the dataset
-        # load the model
-        # keep the worker light
-
     def load_dataset(self, dataset_type, samples, features):
         self.X, self.y = get_data(dataset_type, samples, features)
 
@@ -32,9 +30,14 @@ class RunManager:
 
         self.model = make_model()
 
-        train_worker = TrainWorker()  # need the dataset and the model
+        print(self.X_train.shape)
+        print(self.y_train.shape)
+        print(self.X_test.shape)
+        print(self.y_test.shape)
 
-        # train_worker.signals.run_config.connect(self.plot_panel.plot_curve)
+        train_worker = TrainWorker(self.X_train, self.y_train, self.X_test, self.y_test, self.model)
+
+        train_worker.signals.run_config.connect(self.plot_panel.plot_curve)
         # train_worker.signals.run_config.connect(self.progress_panel.save_run)
 
         self.threadpool.start(train_worker)

@@ -3,7 +3,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
 
-class PlotPanel:
+class PlotsPanel:
     def __init__(self, canvas_tabs):
         self.canvas_tabs = canvas_tabs
 
@@ -36,11 +36,12 @@ class PlotPanel:
         self.plot.clear()
         ax = self.plot.add_subplot(111)
 
-        ax.plot(run["x"], run["y"], label="YAY")
+        ax.scatter(run["x"], run["y"], label="Actual", c="red")
+        ax.scatter(run["x"], run["predictions"], label="Predicted", c="blue")
 
         ax.set_title(run["title"])
-        ax.set_xlabel("Epochs")
-        ax.set_ylabel("Curve")
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
 
         ax.legend()
         ax.grid()
