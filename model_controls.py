@@ -1,8 +1,6 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import QSlider, QLabel, QWidget, QVBoxLayout, QComboBox
 
-from train_worker import TrainWorker
-
 
 class ModelControls:
     def __init__(self, control_tabs, threadpool, plot_panel, progress_panel):
@@ -47,19 +45,19 @@ class ModelControls:
         self.model.clear()
         if dataset_type == "Regression":
             self.model.addItems(["Linear Regression", "Decision Tree Regressor", "Random Forest Regressor", "SVR",
-                             "KNeighbors Regressor", "Custom Neural Network Regressor"])
+                                 "KNeighbors Regressor", "Custom Neural Network Regressor"])
         elif dataset_type == "Classification":
             self.model.addItems((["Logistic Regression", "Decision Tree Classifier", "Random Forest Classifier", "SVC",
-                                 "KNeighbors Classifier", "Custom Neural Network Classifier"]))
+                                  "KNeighbors Classifier", "Custom Neural Network Classifier"]))
 
         self.model.setCurrentIndex(0)
 
     def on_model_change(self):
         print("This is the model")
 
-        train_worker = TrainWorker()
-
-        train_worker.signals.run_config.connect(self.plot_panel.plot_curve)
-        train_worker.signals.run_config.connect(self.progress_panel.save_run)
-
-        self.threadpool.start(train_worker)
+        # train_worker = TrainWorker()
+        #
+        # train_worker.signals.run_config.connect(self.plot_panel.plot_curve)
+        # train_worker.signals.run_config.connect(self.progress_panel.save_run)
+        #
+        # self.threadpool.start(train_worker)

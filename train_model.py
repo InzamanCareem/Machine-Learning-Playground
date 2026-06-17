@@ -45,62 +45,63 @@ def preprocess(X_train, X_test, y_train, y_test):
     return X_train, X_test, y_train, y_test
 
 
-def make_model(dataset, model, features):
-    if dataset == "Regression":
-        if model == "LinearRegression":
-            return LinearRegression()
-        elif model == "DecisionTreeRegressor":
-            return DecisionTreeRegressor(random_state=42)
-        elif model == "RandomForestRegressor":
-            return RandomForestRegressor(random_state=42)
-        elif model == "SVR":
-            return SVR()
-        elif model == "KNeighborsRegressor":
-            return KNeighborsRegressor()
-        elif model == "Custom Neural Network":
-            class LinearRegressionModel(nn.Module):
-                def __init__(self):
-                    super().__init__()
-                    self.layer = nn.Sequential(
-                        nn.Linear(features, 32),
-                        nn.ReLU(),
-                        nn.Linear(32, 16),
-                        nn.ReLU(),
-                        nn.Linear(16, 1)
-                    )
-
-                def forward(self, x):
-                    return self.layer(x)
-
-            return LinearRegressionModel()
-
-    elif dataset == "Classification":
-        if model == "LogisticRegression":
-            return LogisticRegression()
-        elif model == "DecisionTreeClassifier":
-            return DecisionTreeClassifier()
-        elif model == "RandomForestClassifier":
-            return RandomForestClassifier()
-        elif model == "SVC":
-            return SVC()
-        elif model == "KNeighborsClassifier":
-            return KNeighborsClassifier()
-        elif model == "Custom Neural Network":
-            class BinaryClassificationModel(nn.Module):
-                def __init__(self):
-                    super().__init__()
-                    self.layer = nn.Sequential(
-                        nn.Linear(features, 32),
-                        nn.ReLU(),
-                        nn.Linear(32, 16),
-                        nn.ReLU(),
-                        nn.Linear(16, 1),
-                    )
-
-                def forward(self, x):
-                    return self.layer(x)
-
-            return BinaryClassificationModel()
+def make_model():  # dataset, model, features
+    return LinearRegression()
+    # if dataset == "Regression":
+    #     if model == "LinearRegression":
+    #         return LinearRegression()
+    #     elif model == "DecisionTreeRegressor":
+    #         return DecisionTreeRegressor(random_state=42)
+    #     elif model == "RandomForestRegressor":
+    #         return RandomForestRegressor(random_state=42)
+    #     elif model == "SVR":
+    #         return SVR()
+    #     elif model == "KNeighborsRegressor":
+    #         return KNeighborsRegressor()
+    #     elif model == "Custom Neural Network":
+    #         class LinearRegressionModel(nn.Module):
+    #             def __init__(self):
+    #                 super().__init__()
+    #                 self.layer = nn.Sequential(
+    #                     nn.Linear(features, 32),
+    #                     nn.ReLU(),
+    #                     nn.Linear(32, 16),
+    #                     nn.ReLU(),
+    #                     nn.Linear(16, 1)
+    #                 )
+    #
+    #             def forward(self, x):
+    #                 return self.layer(x)
+    #
+    #         return LinearRegressionModel()
+    #
+    # elif dataset == "Classification":
+    #     if model == "LogisticRegression":
+    #         return LogisticRegression()
+    #     elif model == "DecisionTreeClassifier":
+    #         return DecisionTreeClassifier()
+    #     elif model == "RandomForestClassifier":
+    #         return RandomForestClassifier()
+    #     elif model == "SVC":
+    #         return SVC()
+    #     elif model == "KNeighborsClassifier":
+    #         return KNeighborsClassifier()
+    #     elif model == "Custom Neural Network":
+    #         class BinaryClassificationModel(nn.Module):
+    #             def __init__(self):
+    #                 super().__init__()
+    #                 self.layer = nn.Sequential(
+    #                     nn.Linear(features, 32),
+    #                     nn.ReLU(),
+    #                     nn.Linear(32, 16),
+    #                     nn.ReLU(),
+    #                     nn.Linear(16, 1),
+    #                 )
+    #
+    #             def forward(self, x):
+    #                 return self.layer(x)
+    #
+    #         return BinaryClassificationModel()
 
 
 def make_learning_curve(model, X, y, scoring):
