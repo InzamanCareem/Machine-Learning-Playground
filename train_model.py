@@ -8,7 +8,7 @@ from sklearn.preprocessing import StandardScaler
 def get_data(dataset_type, n_samples, n_features):
     if dataset_type == "Regression":
         data = make_regression(n_samples=n_samples, n_features=n_features, n_informative=n_features, n_targets=1,
-                               shuffle=True, random_state=42)
+                               shuffle=True, random_state=42, noise=0.4)
         return data[0], data[1]
 
     elif dataset_type == "Classification":
