@@ -10,7 +10,7 @@ class DatasetControls:
         self.tab = QWidget()
         self.tab_layout = QVBoxLayout()
 
-        self.dataset_type = "Regression"
+        # self.dataset_type = "Regression"
 
         self.dataset_tab_layout = QVBoxLayout()
         self.dataset_parameter_tab_layout = QVBoxLayout()
@@ -68,12 +68,20 @@ class DatasetControls:
         elif dataset_type == "Classification":
             self.dataset.addItems(["Custom classification dataset", "Diabetes dataset"])
 
+        self.samples_slider.blockSignals(True)
+        self.features_slider.blockSignals(True)
+        self.noise_slider.blockSignals(True)
+
         self.dataset.setCurrentIndex(0)
         self.samples_slider.setValue(0)
         self.features_slider.setValue(0)
         self.noise_slider.setValue(0)
 
-        self.dataset_type = dataset_type
+        self.samples_slider.blockSignals(False)
+        self.features_slider.blockSignals(False)
+        self.noise_slider.blockSignals(False)
+
+        self.run_manager.load_dataset(self.samples(), self.features(), self.noise())
 
     def samples(self):
         return [100, 500, 1000, 5000, 10000][self.samples_slider.value()]

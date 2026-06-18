@@ -9,15 +9,38 @@ class PlotsPanel:
 
         self.actual_vs_predicted_tab = QWidget()
         self.actual_vs_predicted_tab_layout = QVBoxLayout()
-
         self.actual_vs_predicted_plot = Figure()
         self.actual_vs_predicted_plot_canvas = FigureCanvas(self.actual_vs_predicted_plot)
 
         self.residuals_vs_fitted_tab = QWidget()
         self.residuals_vs_fitted_tab_layout = QVBoxLayout()
-
         self.residuals_vs_fitted_plot = Figure()
         self.residuals_vs_fitted_plot_canvas = FigureCanvas(self.residuals_vs_fitted_plot)
+
+        self.confusion_matrix_tab = QWidget()
+        self.confusion_matrix_tab_layout = QVBoxLayout()
+        self.confusion_matrix_plot = Figure()
+        self.confusion_matrix_plot_canvas = FigureCanvas(self.confusion_matrix_plot)
+
+        self.roc_curve_tab = QWidget()
+        self.roc_curve_tab_layout = QVBoxLayout()
+        self.roc_curve_plot = Figure()
+        self.roc_curve_plot_canvas = FigureCanvas(self.roc_curve_plot)
+
+        self.precision_vs_recall_tab = QWidget()
+        self.precision_vs_recall_tab_layout = QVBoxLayout()
+        self.precision_vs_recall_plot = Figure()
+        self.precision_vs_recall_plot_canvas = FigureCanvas(self.precision_vs_recall_plot)
+
+        self.learning_curve_tab = QWidget()
+        self.learning_curve_tab_layout = QVBoxLayout()
+        self.learning_curve_plot = Figure()
+        self.learning_curve_plot_canvas = FigureCanvas(self.learning_curve_plot)
+
+        self.validation_curve_tab = QWidget()
+        self.validation_curve_tab_layout = QVBoxLayout()
+        self.validation_curve_plot = Figure()
+        self.validation_curve_plot_canvas = FigureCanvas(self.validation_curve_plot)
 
         self._set_tab()
 
@@ -28,8 +51,28 @@ class PlotsPanel:
         self.residuals_vs_fitted_tab_layout.addWidget(self.residuals_vs_fitted_plot_canvas)
         self.residuals_vs_fitted_tab.setLayout(self.residuals_vs_fitted_tab_layout)
 
+        self.confusion_matrix_tab_layout.addWidget(self.confusion_matrix_plot_canvas)
+        self.confusion_matrix_tab.setLayout(self.confusion_matrix_tab_layout)
+
+        self.roc_curve_tab_layout.addWidget(self.roc_curve_plot_canvas)
+        self.roc_curve_tab.setLayout(self.roc_curve_tab_layout)
+
+        self.precision_vs_recall_tab_layout.addWidget(self.precision_vs_recall_plot_canvas)
+        self.precision_vs_recall_tab.setLayout(self.precision_vs_recall_tab_layout)
+
+        self.learning_curve_tab_layout.addWidget(self.learning_curve_plot_canvas)
+        self.learning_curve_tab.setLayout(self.learning_curve_tab_layout)
+
+        self.validation_curve_tab_layout.addWidget(self.validation_curve_plot_canvas)
+        self.validation_curve_tab.setLayout(self.validation_curve_tab_layout)
+
         self.canvas_tabs.addTab(self.actual_vs_predicted_tab, "Actual vs Predicted")
         self.canvas_tabs.addTab(self.residuals_vs_fitted_tab, "Residuals vs Fitted")
+        self.canvas_tabs.addTab(self.confusion_matrix_tab, "Confusion Matrix")
+        self.canvas_tabs.addTab(self.roc_curve_tab, "ROC Curve")
+        self.canvas_tabs.addTab(self.precision_vs_recall_tab, "Precision vs Recall")
+        self.canvas_tabs.addTab(self.learning_curve_tab, "Learning Curve")
+        self.canvas_tabs.addTab(self.validation_curve_tab, "Validation Curve")
 
     def reset_values(self):
         self.actual_vs_predicted_plot.clear()
@@ -75,6 +118,97 @@ class PlotsPanel:
         ax.grid()
 
         self.residuals_vs_fitted_plot_canvas.draw()
+
+    def plot_confusion_matrix(self, run):
+        self.confusion_matrix_plot.clear()
+        ax = self.confusion_matrix_plot.add_subplot(111)
+
+        cm = run["cm"]
+
+        im = ax.imshow(cm, cmap="Blues")
+
+        ax.set_title("Confusion Matrix")
+        ax.set_xlabel("Predicted")
+        ax.set_ylabel("Actual")
+
+        if "classes" in run:
+            classes = run["classes"]
+            ax.set_xticks(range(len(classes)))
+            ax.set_yticks(range(len(classes)))
+            ax.set_xticklabels(classes)
+            ax.set_yticklabels(classes)
+
+        for i in range(cm.shape[0]):
+            for j in range(cm.shape[1]):
+                ax.text(j, i, str(cm[i, j]), ha="center", va="center",
+                        color="white" if cm[i, j] > cm.max() / 2 else "black")
+
+        self.confusion_matrix_plot.colorbar(im, ax=ax)
+
+        self.confusion_matrix_plot_canvas.draw()
+
+    def plot_roc_curve(self, run):
+        self.roc_curve_plot.clear()
+        ax = self.roc_curve_plot.add_subplot(111)
+
+        ax.plot(run["fpr"], run["tpr"], label=f"AUC = {run["roc_auc"]:.3f}")
+
+        # Random classifier baseline
+        ax.plot([0, 1], [0, 1], linestyle="--")
+
+        ax.set_title("ROC Curve")
+        ax.set_xlabel("False Positive Rate")
+        ax.set_ylabel("True Positive Rate")
+
+        ax.set_xlim([0.0, 1.0])
+        ax.set_ylim([0.0, 1.05])
+
+        ax.legend()
+        ax.grid()
+
+        self.roc_curve_plot_canvas.draw()
+
+    #
+    # def plot_precision_vs_recall(self):
+    #     self.precision_vs_recall_plot.clear()
+    #     ax = self.precision_vs_recall_plot.add_subplot(111)
+    #
+    #     ax.set_title()
+    #     ax.set_xlabel()
+    #     ax.set_ylabel()
+    #
+    #     ax.legend()
+    #     ax.grid()
+    #
+    #     self.precision_vs_recall_plot_canvas.draw()
+    #
+    #
+    # def plot_learning_curve(self):
+    #     self.learning_curve_plot.clear()
+    #     ax = self.learning_curve_plot.add_subplot(111)
+    #
+    #     ax.set_title()
+    #     ax.set_xlabel()
+    #     ax.set_ylabel()
+    #
+    #     ax.legend()
+    #     ax.grid()
+    #
+    #     self.learning_curve_plot_canvas.draw()
+    #
+    #
+    # def plot_validation_curve(self):
+    #     self.validation_curve_plot.clear()
+    #     ax = self.validation_curve_plot.add_subplot(111)
+    #
+    #     ax.set_title()
+    #     ax.set_xlabel()
+    #     ax.set_ylabel()
+    #
+    #     ax.legend()
+    #     ax.grid()
+    #
+    #     self.validation_curve_plot_canvas.draw()
 
     # def plot_curve(self, run):
     #     self.plot.clear()

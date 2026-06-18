@@ -79,7 +79,7 @@ class ModelControls:
 
         self._add_tabs(self.current_parameters)
 
-    def _add_decision_tree_regressor_parameters(self):
+    def _add_decision_tree_parameters(self):
         self.max_depth_slider_label = QLabel(f"Max Depth")
         self.max_depth_slider = QSlider(Qt.Orientation.Horizontal)
         self.max_depth_slider.setRange(0, 3)
@@ -104,13 +104,34 @@ class ModelControls:
 
         self._add_tabs(self.current_parameters)
 
+    def _add_logistic_regression_parameters(self):
+        self.tolerance_slider_label = QLabel(f"Tolerance")
+        self.tolerance_slider = QSlider(Qt.Orientation.Horizontal)
+        self.tolerance_slider.setRange(0, 9)
+        self.tolerance_slider.valueChanged.connect(self.on_model_parameter_change)
+        self.tolerance_slider_value_label = QLabel(f"Tolerance: {self.tolerance()}")
+
+        self.current_parameters = [{"label": self.tolerance_slider_label, "parameter": self.tolerance_slider,
+                                    "parameter_value_label": self.tolerance_slider_value_label,
+                                    "parameter_value": self.tolerance, "alias": "tol"}]
+
+        self._add_tabs(self.current_parameters)
+
     def on_model_change(self):
         self._clear_layout()
 
         if self.model.currentText() == "Linear Regression":
             self._add_linear_regression_parameters()
         elif self.model.currentText() == "Decision Tree Regressor":
-            self._add_decision_tree_regressor_parameters()
+            self._add_decision_tree_parameters()
+        elif self.model.currentText() == "Logistic Regression":
+            self._add_logistic_regression_parameters()
+        elif self.model.currentText() == "Decision Tree Classifier":
+            self._add_decision_tree_parameters()
+
+        self.run_manager.load_model(self.model.currentText(),
+                                    **{parameter["alias"]: parameter["parameter_value"]() for parameter in
+                                       self.current_parameters})
 
     def tolerance(self):
         return np.linspace(0.0001, 0.000001, 10)[self.tolerance_slider.value()]
@@ -129,6 +150,8 @@ class ModelControls:
         self._update_parameter_labels()
 
         parameters = {parameter["alias"]: parameter["parameter_value"]() for parameter in self.current_parameters}
+
+        print(self.model.currentText(), " on model controls")
 
         self.run_manager.load_model(self.model.currentText(), **parameters)
 

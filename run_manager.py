@@ -29,16 +29,25 @@ class RunManager:
         self.model = make_model(model, **kwargs)
 
     def start(self):
+
+        dataset_type = self.dataset_type_controls.get_dataset_type()
+
+        print(dataset_type, "on run manager")
+
         self.X_train, self.y_train, self.X_test, self.y_test = make_train_test(self.X, self.y)
         self.X_train, self.y_train, self.X_test, self.y_test = preprocess(self.X_train, self.y_train, self.X_test,
                                                                           self.y_test)
 
-        train_worker = TrainWorker(self.dataset_type_controls.get_dataset_type(), self.X_train, self.y_train,
-                                   self.X_test, self.y_test, self.model)
+        train_worker = TrainWorker(dataset_type, self.X_train, self.y_train, self.X_test, self.y_test, self.model)
 
-        # only for regression!!
-        train_worker.signals.run_config.connect(self.plot_panel.plot_actual_vs_predicted)
-        train_worker.signals.run_config.connect(self.plot_panel.plot_residuals_vs_fitted)
-        # train_worker.signals.run_config.connect(self.progress_panel.save_run)
+        if dataset_type == "Regression":
+            train_worker.signals.run_config.connect(self.plot_panel.plot_actual_vs_predicted)
+            train_worker.signals.run_config.connect(self.plot_panel.plot_residuals_vs_fitted)
+
+        elif dataset_type == "Classification":
+            train_worker.signals.run_config.connect(self.plot_panel.plot_confusion_matrix)
+            train_worker.signals.run_config.connect(self.plot_panel.plot_roc_curve)
+
+        train_worker.signals.run_config.connect(self.progress_panel.save_run)
 
         self.threadpool.start(train_worker)

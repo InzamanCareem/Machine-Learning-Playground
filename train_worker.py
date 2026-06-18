@@ -1,6 +1,6 @@
 from PyQt6.QtCore import pyqtSignal, pyqtSlot, QRunnable, QObject
 
-from train_model import model_fit, model_predict
+from train_model import model_fit, model_predict, model_predict_proba, get_confusion_matrix, get_roc_curve
 
 
 class WorkerSignals(QObject):
@@ -21,10 +21,33 @@ class TrainWorker(QRunnable):
 
     @pyqtSlot()
     def run(self):
-        model = model_fit(self.model, self.X_train, self.y_train)
-        predictions = model_predict(model, self.X_test)
 
-        self.signals.run_config.emit({
-            "actual": self.y_test.squeeze(),
-            "predictions": predictions.squeeze(),
-        })
+        self.model = model_fit(self.model, self.X_train, self.y_train)
+        predictions = model_predict(self.model, self.X_test)
+
+        print(self.model, "in train worker")
+
+        if self.dataset_type == "Regression":
+
+            self.signals.run_config.emit({
+                "actual": self.y_test,
+                "predictions": predictions,
+                "name": f"{self.model}"
+            })
+
+        elif self.dataset_type == "Classification":
+
+            predictions_score = model_predict_proba(self.model, self.X_test)
+
+            cm = get_confusion_matrix(self.y_test, predictions)
+
+            fpr, tpr, roc_auc = get_roc_curve(self.y_test, predictions_score)
+
+            self.signals.run_config.emit({
+                "cm": cm,
+                "classes": [0, 1],
+                "fpr": fpr,
+                "tpr": tpr,
+                "roc_auc": roc_auc,
+                "name": f"{self.model}"
+            })

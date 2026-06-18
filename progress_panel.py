@@ -36,6 +36,9 @@ class ProgressPanel:
         if self.current_run is not None:
             self.history.append(self.current_run)
 
+            if len(self.history) > 3:
+                self.history.pop(0)
+
         self.current_run = new_run
 
         self._update_history()
