@@ -22,11 +22,20 @@ class RunManager:
 
         self.model = None
 
+        self.param_name = None
+        self.param_range = None
+        self.scoring = None
+
     def load_dataset(self, samples, features, noise):
         self.X, self.y = get_data(self.dataset_type_controls.get_dataset_type(), samples, features, noise)
 
     def load_model(self, model, **kwargs):
         self.model = make_model(model, **kwargs)
+
+    def load_parameters(self, param_name, param_range, scoring):
+        self.param_name = param_name
+        self.param_range = param_range
+        self.scoring = scoring
 
     def start(self):
         self.progress_panel.reset_progress_value()
@@ -37,7 +46,8 @@ class RunManager:
         self.X_train, self.y_train, self.X_test, self.y_test = preprocess(self.X_train, self.y_train, self.X_test,
                                                                           self.y_test)
 
-        train_worker = TrainWorker(dataset_type, self.X_train, self.y_train, self.X_test, self.y_test, self.model)
+        train_worker = TrainWorker(dataset_type, self.X, self.y, self.X_train, self.y_train, self.X_test, self.y_test,
+                                   self.model, self.param_name, self.param_range, self.scoring)
 
         if dataset_type == "Regression":
             train_worker.signals.run_config.connect(self.plot_panel.plot_actual_vs_predicted)
@@ -46,6 +56,10 @@ class RunManager:
         elif dataset_type == "Classification":
             train_worker.signals.run_config.connect(self.plot_panel.plot_confusion_matrix)
             train_worker.signals.run_config.connect(self.plot_panel.plot_roc_curve)
+            train_worker.signals.run_config.connect(self.plot_panel.plot_precision_vs_recall)
+
+        train_worker.signals.run_config.connect(self.plot_panel.plot_learning_curve)
+        train_worker.signals.run_config.connect(self.plot_panel.plot_validation_curve)
 
         train_worker.signals.progress.connect(self.progress_panel.progress.setValue)
         train_worker.signals.run_config.connect(self.progress_panel.save_run)

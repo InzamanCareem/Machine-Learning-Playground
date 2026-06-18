@@ -1,10 +1,11 @@
+import numpy as np
 import torch
 from sklearn.datasets import make_regression, make_classification
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, learning_curve, validation_curve
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import confusion_matrix, roc_curve, auc
+from sklearn.metrics import confusion_matrix, roc_curve, auc, precision_recall_curve, average_precision_score
 
 
 def get_data(dataset_type, n_samples, n_features, noise):
@@ -67,3 +68,36 @@ def get_roc_curve(y_true, y_score):
     fpr, tpr, _ = roc_curve(y_true, y_score)
     roc_auc = auc(fpr, tpr)
     return fpr, tpr, roc_auc
+
+
+def get_precision_recall_curve(y_true, y_score):
+    precision, recall, _ = precision_recall_curve(y_true, y_score)
+
+    return precision, recall
+
+
+def get_average_precision_score(y_true, y_score):
+    return average_precision_score(y_true, y_score)
+
+
+def get_learning_curve(model, X, y):
+    train_sizes, train_scores, val_scores = learning_curve(model, X, y, cv=5,
+                                                           train_sizes=np.linspace(0.1, 1.0, 5))
+
+    train_mean = train_scores.mean(axis=1)
+    val_mean = val_scores.mean(axis=1)
+
+    return train_sizes, train_mean, val_mean
+
+
+def get_validation_curve(model, X, y, param_name, param_range, scoring):
+    if param_name is not None:
+        train_scores, test_scores = validation_curve(model, X, y, param_name=param_name, param_range=param_range, cv=5,
+                                                     scoring=scoring)
+
+        train_mean = np.mean(train_scores, axis=1)
+        test_mean = np.mean(test_scores, axis=1)
+
+        return train_mean, test_mean
+
+    return None, None

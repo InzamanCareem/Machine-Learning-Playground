@@ -81,6 +81,21 @@ class PlotsPanel:
         self.residuals_vs_fitted_plot.clear()
         self.residuals_vs_fitted_plot_canvas.draw()
 
+        self.confusion_matrix_plot.clear()
+        self.confusion_matrix_plot_canvas.draw()
+
+        self.roc_curve_plot.clear()
+        self.roc_curve_plot_canvas.draw()
+
+        self.precision_vs_recall_plot.clear()
+        self.precision_vs_recall_plot_canvas.draw()
+
+        self.learning_curve_plot.clear()
+        self.learning_curve_plot_canvas.draw()
+
+        self.validation_curve_plot.clear()
+        self.validation_curve_plot_canvas.draw()
+
     def plot_actual_vs_predicted(self, run):
         self.actual_vs_predicted_plot.clear()
         ax = self.actual_vs_predicted_plot.add_subplot(111)
@@ -153,7 +168,6 @@ class PlotsPanel:
 
         ax.plot(run["fpr"], run["tpr"], label=f"AUC = {run["roc_auc"]:.3f}")
 
-        # Random classifier baseline
         ax.plot([0, 1], [0, 1], linestyle="--")
 
         ax.set_title("ROC Curve")
@@ -168,76 +182,60 @@ class PlotsPanel:
 
         self.roc_curve_plot_canvas.draw()
 
-    #
-    # def plot_precision_vs_recall(self):
-    #     self.precision_vs_recall_plot.clear()
-    #     ax = self.precision_vs_recall_plot.add_subplot(111)
-    #
-    #     ax.set_title()
-    #     ax.set_xlabel()
-    #     ax.set_ylabel()
-    #
-    #     ax.legend()
-    #     ax.grid()
-    #
-    #     self.precision_vs_recall_plot_canvas.draw()
-    #
-    #
-    # def plot_learning_curve(self):
-    #     self.learning_curve_plot.clear()
-    #     ax = self.learning_curve_plot.add_subplot(111)
-    #
-    #     ax.set_title()
-    #     ax.set_xlabel()
-    #     ax.set_ylabel()
-    #
-    #     ax.legend()
-    #     ax.grid()
-    #
-    #     self.learning_curve_plot_canvas.draw()
-    #
-    #
-    # def plot_validation_curve(self):
-    #     self.validation_curve_plot.clear()
-    #     ax = self.validation_curve_plot.add_subplot(111)
-    #
-    #     ax.set_title()
-    #     ax.set_xlabel()
-    #     ax.set_ylabel()
-    #
-    #     ax.legend()
-    #     ax.grid()
-    #
-    #     self.validation_curve_plot_canvas.draw()
+    def plot_precision_vs_recall(self, run):
+        self.precision_vs_recall_plot.clear()
+        ax = self.precision_vs_recall_plot.add_subplot(111)
 
-    # def plot_curve(self, run):
-    #     self.plot.clear()
-    #     ax = self.plot.add_subplot(111)
-    #
-    #     # ax.scatter(run["x"], run["y"], label="Actual", c="red")
-    #     ax.scatter(run["y"], run["predictions"], label="Predicted", c="blue")
-    #
-    #     ax.set_title(run["title"])
-    #     ax.set_xlabel("x")
-    #     ax.set_ylabel("y")
-    #
-    #     ax.legend()
-    #     ax.grid()
-    #
-    #     self.plot_canvas.draw()
-    #
-    # def compare_plot_curve(self, selected, current):
-    #     self.compare_plot.clear()
-    #     ax = self.compare_plot.add_subplot(111)
-    #
-    #     ax.plot(current["x"], current["y"], label="Current")
-    #     ax.plot(selected["x"], selected["y"], label="Selected", linestyle="--")
-    #
-    #     ax.set_title(current["title"])
-    #     ax.set_xlabel("Epochs")
-    #     ax.set_ylabel("Curve")
-    #
-    #     ax.legend()
-    #     ax.grid()
-    #
-    #     self.compare_plot_canvas.draw()
+        baseline = sum(run["y_true"]) / len(run["y_true"])
+
+        ax.plot(run["recall"], run["precision"], label=f"PR curve (AP={run["ap"]:.3f})")
+        ax.fill_between(run["recall"], run["precision"], alpha=0.2)
+
+        ax.axhline(baseline, linestyle="--", label="Baseline")
+
+        ax.set_title("Precision-Recall Curve")
+        ax.set_xlabel("Recall")
+        ax.set_ylabel("Precision")
+
+        ax.set_xlim([0.0, 1.0])
+        ax.set_ylim([0.0, 1.05])
+
+        ax.legend()
+        ax.grid()
+
+        self.precision_vs_recall_plot_canvas.draw()
+
+    def plot_learning_curve(self, run):
+        self.learning_curve_plot.clear()
+        ax = self.learning_curve_plot.add_subplot(111)
+
+        ax.plot(run["lc_train_sizes"], run["lc_train_mean"], label="Training score")
+        ax.plot(run["lc_train_sizes"], run["lc_val_mean"], label="Validation score")
+
+        ax.set_title("Learning Curve")
+        ax.set_xlabel("Training set size")
+        ax.set_ylabel("Score")
+
+        ax.legend()
+        ax.grid()
+
+        self.learning_curve_plot_canvas.draw()
+
+    def plot_validation_curve(self, run):
+        self.validation_curve_plot.clear()
+        ax = self.validation_curve_plot.add_subplot(111)
+
+        if run["param_range"] is None:
+            return
+
+        ax.plot(run["param_range"], run["vc_train_mean"], label="Training score", marker='o')
+        ax.plot(run["param_range"], run["vc_test_mean"], label="Cross-validation score", marker='o')
+
+        ax.set_title("Validation Curve")
+        ax.set_xlabel(run["param_name"])
+        ax.set_ylabel(run["scoring"])
+
+        ax.legend()
+        ax.grid()
+
+        self.validation_curve_plot_canvas.draw()

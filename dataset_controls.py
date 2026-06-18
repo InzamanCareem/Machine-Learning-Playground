@@ -10,8 +10,6 @@ class DatasetControls:
         self.tab = QWidget()
         self.tab_layout = QVBoxLayout()
 
-        # self.dataset_type = "Regression"
-
         self.dataset_tab_layout = QVBoxLayout()
         self.dataset_parameter_tab_layout = QVBoxLayout()
 
