@@ -151,8 +151,6 @@ class ModelControls:
 
         parameters = {parameter["alias"]: parameter["parameter_value"]() for parameter in self.current_parameters}
 
-        print(self.model.currentText(), " on model controls")
-
         self.run_manager.load_model(self.model.currentText(), **parameters)
 
         self.run_manager.start()

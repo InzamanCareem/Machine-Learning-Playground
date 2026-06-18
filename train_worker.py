@@ -5,6 +5,7 @@ from train_model import model_fit, model_predict, model_predict_proba, get_confu
 
 class WorkerSignals(QObject):
     run_config = pyqtSignal(dict)
+    progress = pyqtSignal(int)
 
 
 class TrainWorker(QRunnable):
@@ -24,8 +25,6 @@ class TrainWorker(QRunnable):
 
         self.model = model_fit(self.model, self.X_train, self.y_train)
         predictions = model_predict(self.model, self.X_test)
-
-        print(self.model, "in train worker")
 
         if self.dataset_type == "Regression":
 
@@ -51,3 +50,5 @@ class TrainWorker(QRunnable):
                 "roc_auc": roc_auc,
                 "name": f"{self.model}"
             })
+
+        self.signals.progress.emit(100)

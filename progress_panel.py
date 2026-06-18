@@ -60,6 +60,9 @@ class ProgressPanel:
 
         self.plot_panel.compare_plot_curve(selected, current)
 
+    def reset_progress_value(self):
+        self.progress.setValue(0)
+
     def reset_values(self):
         self.set_history([])
         self.set_current_run(None)
