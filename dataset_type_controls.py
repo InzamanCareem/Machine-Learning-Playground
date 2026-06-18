@@ -22,3 +22,6 @@ class DatasetTypeControls:
         self.progress_panel.set_current_run(None)
 
         self.reset_ui(self.dataset.currentText())
+
+    def get_dataset_type(self):
+        return self.dataset.currentText()

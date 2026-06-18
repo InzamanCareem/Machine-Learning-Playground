@@ -1,14 +1,15 @@
 import torch
 from sklearn.datasets import make_regression, make_classification
 from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 
-def get_data(dataset_type, n_samples, n_features):
+def get_data(dataset_type, n_samples, n_features, noise):
     if dataset_type == "Regression":
-        data = make_regression(n_samples=n_samples, n_features=n_features, n_informative=n_features, n_targets=1,
-                               shuffle=True, random_state=42, noise=0.4)
+        data = make_regression(n_samples=n_samples, n_features=n_features, n_informative=n_features, noise=noise,
+                               n_targets=1, shuffle=True, random_state=42)
         return data[0], data[1]
 
     elif dataset_type == "Classification":
@@ -34,8 +35,11 @@ def preprocess(X_train, X_test, y_train, y_test):
     return X_train, y_train, X_test, y_test
 
 
-def make_model():
-    return LinearRegression()
+def make_model(model, **kwargs):
+    if model == "Linear Regression":
+        return LinearRegression(**kwargs)
+    elif model == "Decision Tree Regressor":
+        return DecisionTreeRegressor(**kwargs)
 
 
 def model_fit(model, X_train, y_train):

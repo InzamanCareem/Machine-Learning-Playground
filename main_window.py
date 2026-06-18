@@ -26,17 +26,16 @@ class MainWindow(QWidget):
 
         progress_layout = QVBoxLayout()
 
-        # self.threadpool = QThreadPool()
-
         self.plots_panel = PlotsPanel(canvas_tabs)
 
         self.progress_panel = ProgressPanel(progress_layout, self.plots_panel)
 
-        self.run_manager = RunManager(self.plots_panel)
-
         self.dataset_type_controls = DatasetTypeControls(control_panel_layout, self.progress_panel, self.reset_ui)
-        self.dataset_controls = DatasetControls(control_tabs, self.run_manager, self.plots_panel, self.progress_panel)
-        self.model_controls = ModelControls(control_tabs, self.run_manager, self.plots_panel, self.progress_panel)
+
+        self.run_manager = RunManager(self.dataset_type_controls, self.plots_panel, self.progress_panel)
+
+        self.dataset_controls = DatasetControls(control_tabs, self.run_manager)
+        self.model_controls = ModelControls(control_tabs, self.run_manager)
 
         self.progress_panel.set_layout()
 
@@ -55,4 +54,4 @@ class MainWindow(QWidget):
         self.dataset_controls.reset_values(dataset_type)
         self.model_controls.reset_values(dataset_type)
         self.progress_panel.reset_values()
-        self.plot_panel.reset_values()
+        self.plots_panel.reset_values()
