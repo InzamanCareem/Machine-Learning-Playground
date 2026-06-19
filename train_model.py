@@ -3,9 +3,14 @@ import torch
 from sklearn.datasets import make_regression, make_classification
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.tree import DecisionTreeRegressor, DecisionTreeClassifier
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.svm import SVR
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn.model_selection import train_test_split, learning_curve, validation_curve
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import confusion_matrix, roc_curve, auc, precision_recall_curve, average_precision_score
+from sklearn.metrics import confusion_matrix, roc_curve, auc, precision_recall_curve, average_precision_score, \
+    accuracy_score
+from torch import nn, optim
 
 
 def get_data(dataset_type, n_samples, n_features, noise):
@@ -37,15 +42,54 @@ def preprocess(X_train, X_test, y_train, y_test):
     return X_train, y_train, X_test, y_test
 
 
-def make_model(model, **kwargs):
+def make_model(model, features, **kwargs):
     if model == "Linear Regression":
         return LinearRegression(**kwargs)
     elif model == "Decision Tree Regressor":
         return DecisionTreeRegressor(**kwargs)
+    elif model == "Random Forest Regressor":
+        return RandomForestRegressor(**kwargs)
+    elif model == "Support Vector Regressor":
+        return SVR(**kwargs)
+    elif model == "KNeighbors Regressor":
+        return KNeighborsRegressor(**kwargs)
+    elif model == "Custom Neural Network Regressor":
+        class LinearRegressionModel(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.layer = nn.Sequential(
+                    nn.Linear(features, 32),
+                    nn.ReLU(),
+                    nn.Linear(32, 16),
+                    nn.ReLU(),
+                    nn.Linear(16, 1)
+                )
+
+            def forward(self, x):
+                return self.layer(x)
+
+        return LinearRegressionModel()
+
     elif model == "Logistic Regression":
         return LogisticRegression(**kwargs)
     elif model == "Decision Tree Classifier":
         return DecisionTreeClassifier(**kwargs)
+    elif model == "Custom Neural Network Classifier":
+        class BinaryClassificationModel(nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.layer = nn.Sequential(
+                    nn.Linear(features, 32),
+                    nn.ReLU(),
+                    nn.Linear(32, 16),
+                    nn.ReLU(),
+                    nn.Linear(16, 1)
+                )
+
+            def forward(self, x):
+                return self.layer(x)
+
+        return BinaryClassificationModel()
 
 
 def model_fit(model, X_train, y_train):
@@ -101,3 +145,114 @@ def get_validation_curve(model, X, y, param_name, param_range, scoring):
         return train_mean, test_mean
 
     return None, None
+
+
+def get_loss_func(loss_name):
+    if loss_name == "Mean Squared Error":
+        return nn.MSELoss()
+    elif loss_name == "Mean Absolute Error":
+        return nn.L1Loss()
+    elif loss_name == "Huber Loss":
+        return nn.HuberLoss()
+    elif loss_name == "Binary Cross Entropy":
+        return nn.BCEWithLogitsLoss()
+
+
+def get_optimizer(opt_name, lr, model):
+    if opt_name == "Adam":
+        return optim.Adam(model.parameters(), lr=lr)
+    elif opt_name == "SGD":
+        return optim.SGD(model.parameters(), lr=lr)
+    elif opt_name == "RMSprop":
+        return optim.RMSprop(model.parameters(), lr=lr)
+
+
+def train_regressor_model(model, loss_function_name, optimizer_name, lr, X_train, X_test, y_train, y_test):
+    loss_fn = get_loss_func(loss_function_name)
+    optimizer = get_optimizer(optimizer_name, lr, model)
+
+    torch.manual_seed(42)
+    epochs = 50
+    epoch_count = []
+    train_loss_values = []
+    test_loss_values = []
+
+    y_train = y_train.unsqueeze(1)
+    y_test = y_test.unsqueeze(1)
+
+    for epoch in range(epochs):
+        model.train()
+
+        y_pred = model(X_train)
+        loss = loss_fn(y_pred, y_train)
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        model.eval()
+        with torch.inference_mode():
+            test_pred = model(X_test)
+            test_loss = loss_fn(test_pred, y_test)
+
+        epoch_count.append(epoch)
+        train_loss_values.append(loss.item())
+        test_loss_values.append(test_loss.item())
+
+    model.eval()
+    with torch.inference_mode():
+        predictions = model(X_test).squeeze()
+
+    return epoch_count, train_loss_values, test_loss_values, predictions
+
+
+def train_classifier_model(model, loss_function_name, optimizer_name, lr, X_train, X_test, y_train, y_test):
+    loss_fn = get_loss_func(loss_function_name)
+    optimizer = get_optimizer(optimizer_name, lr, model)
+
+    torch.manual_seed(42)
+    epochs = 50
+    epoch_count = []
+    train_loss_values = []
+    test_loss_values = []
+    train_accuracy_values = []
+    test_accuracy_values = []
+
+    y_train = y_train.unsqueeze(1)
+    y_test = y_test.unsqueeze(1)
+
+    for epoch in range(epochs):
+        model.train()
+
+        y_logits = model(X_train)
+        y_pred = torch.round(torch.sigmoid(y_logits))
+
+        loss = loss_fn(y_logits, y_train)
+        train_accuracy = accuracy_score(y_train.detach().numpy(), y_pred.detach().numpy())
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        epoch_count.append(epoch)
+        train_loss_values.append(loss.item())
+        train_accuracy_values.append(train_accuracy)
+
+        model.eval()
+        with torch.inference_mode():
+            test_logits = model(X_test)
+            test_pred = torch.round(torch.sigmoid(test_logits))
+
+            test_loss = loss_fn(test_logits, y_test)
+            test_accuracy = accuracy_score(y_test.detach().numpy(), test_pred.detach().numpy())
+
+            test_loss_values.append(test_loss.item())
+            test_accuracy_values.append(test_accuracy)
+
+    model.eval()
+    with torch.inference_mode():
+        prediction_logits = model(X_test).squeeze()
+        predictions = torch.round(torch.sigmoid(test_logits))
+
+    return (epoch_count, train_loss_values, test_loss_values, train_accuracy_values, test_accuracy_values,
+            prediction_logits, predictions)

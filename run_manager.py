@@ -21,16 +21,31 @@ class RunManager:
         self.y_test = None
 
         self.model = None
+        self.model_name = None
 
         self.param_name = None
         self.param_range = None
         self.scoring = None
 
+        self.lr = None
+        self.loss = None
+        self.optimizer = None
+
+        self.set_ui = None
+
+    def set_model_controls_ui(self, set_ui):
+        self.set_ui = set_ui
+
     def load_dataset(self, samples, features, noise):
         self.X, self.y = get_data(self.dataset_type_controls.get_dataset_type(), samples, features, noise)
 
     def load_model(self, model, **kwargs):
-        self.model = make_model(model, **kwargs)
+        self.model_name = model
+        self.model = make_model(model, self.X.shape[1], **kwargs)
+
+        self.lr = kwargs.get("lr", self.lr)
+        self.loss = kwargs.get("loss", self.loss)
+        self.optimizer = kwargs.get("optimizer", self.optimizer)
 
     def load_parameters(self, param_name, param_range, scoring):
         self.param_name = param_name
@@ -38,6 +53,7 @@ class RunManager:
         self.scoring = scoring
 
     def start(self):
+
         self.progress_panel.reset_progress_value()
 
         dataset_type = self.dataset_type_controls.get_dataset_type()
@@ -47,23 +63,41 @@ class RunManager:
                                                                           self.y_test)
 
         train_worker = TrainWorker(dataset_type, self.X, self.y, self.X_train, self.y_train, self.X_test, self.y_test,
-                                   self.model, self.param_name, self.param_range, self.scoring)
+                                   self.model, self.model_name, self.param_name, self.param_range, self.scoring,
+                                   self.loss, self.optimizer, self.lr)
 
         if dataset_type == "Regression":
             train_worker.signals.run_config.connect(self.plot_panel.plot_actual_vs_predicted)
             train_worker.signals.run_config.connect(self.plot_panel.plot_residuals_vs_fitted)
+
+            if self.model_name == "Custom Neural Network Regressor":
+                train_worker.signals.run_config.connect(self.plot_panel.plot_loss_curve)
+            else:
+                train_worker.signals.run_config.connect(self.plot_panel.plot_learning_curve)
+
+                if self.param_name is not None and self.param_range is not None and self.scoring is not None:
+                    train_worker.signals.run_config.connect(self.plot_panel.plot_validation_curve)
 
         elif dataset_type == "Classification":
             train_worker.signals.run_config.connect(self.plot_panel.plot_confusion_matrix)
             train_worker.signals.run_config.connect(self.plot_panel.plot_roc_curve)
             train_worker.signals.run_config.connect(self.plot_panel.plot_precision_vs_recall)
 
-        train_worker.signals.run_config.connect(self.plot_panel.plot_learning_curve)
+            if self.model_name == "Custom Neural Network Classifier":
+                train_worker.signals.run_config.connect(self.plot_panel.plot_loss_curve)
+                train_worker.signals.run_config.connect(self.plot_panel.plot_accuracy_curve)
+            else:
+                train_worker.signals.run_config.connect(self.plot_panel.plot_learning_curve)
 
-        if self.param_name is not None and self.param_range is not None and self.scoring is not None:
-            train_worker.signals.run_config.connect(self.plot_panel.plot_validation_curve)
+                if self.param_name is not None and self.param_range is not None and self.scoring is not None:
+                    train_worker.signals.run_config.connect(self.plot_panel.plot_validation_curve)
 
         train_worker.signals.progress.connect(self.progress_panel.progress.setValue)
         train_worker.signals.run_config.connect(self.progress_panel.save_run)
 
+        train_worker.signals.finished.connect(self.on_finished)
+
         self.threadpool.start(train_worker)
+
+    def on_finished(self):
+        self.set_ui(True)

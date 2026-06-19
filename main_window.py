@@ -1,4 +1,3 @@
-from PyQt6.QtCore import QThreadPool
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QTabWidget
 
 from run_manager import RunManager
