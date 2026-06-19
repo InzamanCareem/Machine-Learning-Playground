@@ -127,9 +127,12 @@ class ModelControls:
             if parameter_value_label is not None:
                 parameter["parameter_value_layout"].addWidget(parameter_value_label, 1)
 
+            parameter["parameter_value_layout"].setContentsMargins(0, 10, 0, 0)
+
             parameter["parameter_layout"].addWidget(parameter["label"])
             parameter["parameter_layout"].addLayout(parameter["parameter_value_layout"])
             parameter["parameter_layout"].addStretch(0)
+            parameter["parameter_layout"].setContentsMargins(10, 10, 0, 0)
 
             self.model_parameter_tab_layout.addLayout(parameter["parameter_layout"])
 

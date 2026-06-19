@@ -1,5 +1,5 @@
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QSlider, QLabel, QWidget, QVBoxLayout, QComboBox
+from PyQt6.QtWidgets import QSlider, QLabel, QWidget, QVBoxLayout, QComboBox, QHBoxLayout
 
 
 class DatasetControls:
@@ -18,21 +18,9 @@ class DatasetControls:
 
         self.dataset = QComboBox()
         self.dataset.addItems(DatasetControls.REGRESSION_DATASETS)
+        self.dataset.currentIndexChanged.connect(self.on_dataset_change)
 
-        self.samples_slider = QSlider(Qt.Orientation.Horizontal)
-        self.samples_slider.setRange(0, 4)
-        self.samples_slider.valueChanged.connect(self.on_dataset_change)
-        self.samples_slider_label = QLabel(f"Samples: {self.samples()}")
-
-        self.features_slider = QSlider(Qt.Orientation.Horizontal)
-        self.features_slider.setRange(0, 3)
-        self.features_slider.valueChanged.connect(self.on_dataset_change)
-        self.features_slider_label = QLabel(f"Features: {self.features()}")
-
-        self.noise_slider = QSlider(Qt.Orientation.Horizontal)
-        self.noise_slider.setRange(0, 6)
-        self.noise_slider.valueChanged.connect(self.on_dataset_change)
-        self.noise_slider_label = QLabel(f"Noise: {self.noise()}")
+        self.current_parameters = []
 
         self._set_tab()
 
@@ -42,17 +30,7 @@ class DatasetControls:
         self.dataset_tab_layout.addWidget(QLabel("Dataset"))
         self.dataset_tab_layout.addWidget(self.dataset)
 
-        self.dataset_parameter_tab_layout.addWidget(QLabel("Number of Samples"))
-        self.dataset_parameter_tab_layout.addWidget(self.samples_slider)
-        self.dataset_parameter_tab_layout.addWidget(self.samples_slider_label)
-
-        self.dataset_parameter_tab_layout.addWidget(QLabel("Number of Features"))
-        self.dataset_parameter_tab_layout.addWidget(self.features_slider)
-        self.dataset_parameter_tab_layout.addWidget(self.features_slider_label)
-
-        self.dataset_parameter_tab_layout.addWidget(QLabel("Noise"))
-        self.dataset_parameter_tab_layout.addWidget(self.noise_slider)
-        self.dataset_parameter_tab_layout.addWidget(self.noise_slider_label)
+        self._add_custom_dataset_parameters()
 
         self.tab_layout.addLayout(self.dataset_tab_layout)
         self.tab_layout.addStretch(0)
@@ -61,6 +39,19 @@ class DatasetControls:
         self.tab.setLayout(self.tab_layout)
 
         self.control_tabs.addTab(self.tab, "Dataset")
+
+    def _add_widgets(self, parameters):
+        for parameter in parameters:
+            parameter["parameter_value_layout"].addWidget(parameter["parameter"], 5)
+            parameter["parameter_value_layout"].addWidget(parameter["parameter_value_label"], 1)
+            parameter["parameter_value_layout"].setContentsMargins(0, 10, 0, 0)
+
+            parameter["parameter_layout"].addWidget(parameter["label"])
+            parameter["parameter_layout"].addLayout(parameter["parameter_value_layout"])
+            parameter["parameter_layout"].addStretch(0)
+            parameter["parameter_layout"].setContentsMargins(10, 10, 0, 0)
+
+            self.dataset_parameter_tab_layout.addLayout(parameter["parameter_layout"])
 
     def reset_values(self, dataset_type):
         self.dataset.clear()
@@ -84,19 +75,86 @@ class DatasetControls:
 
         self.run_manager.load_dataset(self.samples(), self.features(), self.noise())
 
+    def _add_custom_dataset_parameters(self):
+        self.samples_layout = QVBoxLayout()
+        self.samples_slider_layout = QHBoxLayout()
+        self.samples_slider_label = QLabel("Number of Samples")
+        self.samples_slider = QSlider(Qt.Orientation.Horizontal)
+        self.samples_slider.setRange(0, 4)
+        self.samples_slider.valueChanged.connect(self.on_dataset_change)
+        self.samples_value_label = QLabel(f"{self.samples()}")
+
+        self.features_layout = QVBoxLayout()
+        self.features_slider_layout = QHBoxLayout()
+        self.features_slider_label = QLabel("Number of Features")
+        self.features_slider = QSlider(Qt.Orientation.Horizontal)
+        self.features_slider.setRange(0, 3)
+        self.features_slider.valueChanged.connect(self.on_dataset_change)
+        self.features_value_label = QLabel(f"{self.features()}")
+
+        self.noise_layout = QVBoxLayout()
+        self.noise_slider_layout = QHBoxLayout()
+        self.noise_slider_label = QLabel("Noise")
+        self.noise_slider = QSlider(Qt.Orientation.Horizontal)
+        self.noise_slider.setRange(0, 6)
+        self.noise_slider.valueChanged.connect(self.on_dataset_change)
+        self.noise_value_label = QLabel(f"{self.noise()}")
+
+        self.current_parameters = [{"label": self.samples_slider_label,
+                                    "parameter": self.samples_slider,
+                                    "parameter_layout": self.samples_layout,
+                                    "parameter_value_layout": self.samples_slider_layout,
+                                    "parameter_value_label": self.samples_value_label,
+                                    "parameter_value": self.samples
+                                    },
+
+                                   {"label": self.features_slider_label,
+                                    "parameter": self.features_slider,
+                                    "parameter_layout": self.features_layout,
+                                    "parameter_value_layout": self.features_slider_layout,
+                                    "parameter_value_label": self.features_value_label,
+                                    "parameter_value": self.features
+                                    },
+
+                                   {"label": self.noise_slider_label,
+                                    "parameter": self.noise_slider,
+                                    "parameter_layout": self.noise_layout,
+                                    "parameter_value_layout": self.noise_slider_layout,
+                                    "parameter_value_label": self.noise_value_label,
+                                    "parameter_value": self.noise
+                                    }
+                                   ]
+
+        self._add_widgets(self.current_parameters)
+
+    @staticmethod
+    def samples_range():
+        return [100, 500, 1000, 5000, 10000]
+
     def samples(self):
-        return [100, 500, 1000, 5000, 10000][self.samples_slider.value()]
+        return self.samples_range()[self.samples_slider.value()]
+
+    @staticmethod
+    def features_range():
+        return [2, 4, 6, 8]
 
     def features(self):
-        return [2, 4, 6, 8][self.features_slider.value()]
+        return self.features_range()[self.features_slider.value()]
+
+    @staticmethod
+    def noise_range():
+        return [0, 0.5, 1, 2, 4, 8, 10]
 
     def noise(self):
-        return [0, 0.5, 1, 2, 4, 8, 10][self.noise_slider.value()]
+        return self.noise_range()[self.noise_slider.value()]
+
+    def _update_parameter_labels(self):
+        for parameter in self.current_parameters:
+            parameter["parameter_value_label"].setText(f"{parameter["parameter_value"]()}")
 
     def on_dataset_change(self):
-        self.samples_slider_label.setText(f"Samples: {self.samples()}")
-        self.features_slider_label.setText(f"Features: {self.features()}")
-        self.noise_slider_label.setText(f"Noise: {self.noise()}")
+
+        self._update_parameter_labels()
 
         self.run_manager.load_dataset(self.samples(), self.features(), self.noise())
 
