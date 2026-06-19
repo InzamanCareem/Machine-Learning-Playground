@@ -1,122 +1,159 @@
-from PyQt6.QtCore import QThread, pyqtSignal
+from PyQt6.QtCore import pyqtSignal, pyqtSlot, QRunnable, QObject
 
-from train_model import *
+from train_model import model_fit, model_predict, model_predict_proba, get_confusion_matrix, get_roc_curve, \
+    get_precision_recall_curve, get_average_precision_score, get_learning_curve, get_validation_curve, \
+    train_regressor_model, train_classifier_model
 
 
-class TrainWorker(QThread):
+class WorkerSignals(QObject):
     run_config = pyqtSignal(dict)
     progress = pyqtSignal(int)
+    finished = pyqtSignal(bool)
 
-    def __init__(self, dataset, samples, features, model, lr=None, loss_name=None,
-                 optimizer_name=None):
+
+class TrainWorker(QRunnable):
+    def __init__(self, dataset_type, X, y, X_train, y_train, X_test, y_test, model, model_name, param_name, param_range,
+                 scoring, loss_function_name, optimizer_name, lr):
         super().__init__()
+        self.signals = WorkerSignals()
 
-        self.dataset = dataset
-        self.samples = samples
-        self.features = features
-        self.model = model
-
-        self.lr = lr
-        self.loss_name = loss_name
-        self.optimizer_name = optimizer_name
-
-        self.X = None
-        self.y = None
-        self.X_train = None
-        self.X_test = None
-        self.y_train = None
-        self.y_test = None
-
-    @classmethod
-    def from_ml_model(cls, dataset, samples, features, model):
-        return cls(dataset=dataset, samples=samples, features=features, model=model)
-
-    @classmethod
-    def from_dl_model(cls, dataset, samples, features, model, lr, loss_name, optimizer_name):
-        return cls(dataset=dataset, samples=samples, features=features, model=model, lr=lr, loss_name=loss_name,
-                   optimizer_name=optimizer_name)
-
-    def _load_dataset(self):
-        X, y = get_data(self.dataset, self.samples, self.features)
+        self.dataset_type = dataset_type
         self.X = X
         self.y = y
-        X_train, X_test, y_train, y_test = make_train_test(X, y)
-        X_train, X_test, y_train, y_test = preprocess(X_train, X_test, y_train, y_test)
-
         self.X_train = X_train
-        self.X_test = X_test
         self.y_train = y_train
+        self.X_test = X_test
         self.y_test = y_test
+        self.model = model
+        self.model_name = model_name
+        self.param_name = param_name
+        self.param_range = param_range
+        self.scoring = scoring
+        self.loss_function_name = loss_function_name
+        self.optimizer_name = optimizer_name
+        self.lr = lr
 
+    @pyqtSlot()
     def run(self):
-        self._load_dataset()
+        if self.dataset_type == "Regression":
 
-        model = make_model(self.dataset, self.model, self.features)
+            if self.model_name == "Custom Neural Network Regressor":
+                epochs, train_loss_values, test_loss_values, predictions = train_regressor_model(self.model,
+                                                                                                 self.loss_function_name,
+                                                                                                 self.optimizer_name,
+                                                                                                 self.lr,
+                                                                                                 self.X_train,
+                                                                                                 self.X_test,
+                                                                                                 self.y_train,
+                                                                                                 self.y_test)
 
-        if self.dataset == "Regression":
-            if self.model == "Custom Neural Network":
-                loss_fn = get_loss_func(self.loss_name)
-                opt = get_optimizer(self.optimizer_name, self.lr, model)
-
-                epoch_count, train_loss, test_loss = model_train(self.dataset, model, loss_fn, opt, self.X_train,
-                                                                 self.X_test, self.y_train, self.y_test,
-                                                                 self.progress.emit)
-                self.run_config.emit({
-                    "epochs": epoch_count,
-                    "train_loss": train_loss,
-                    "test_loss": test_loss,
-                    "model_type": "dlr",
-                    "name": ""
+                self.signals.run_config.emit({
+                    "actual": self.y_test,
+                    "predictions": predictions,
+                    "epochs": epochs,
+                    "train_loss": train_loss_values,
+                    "test_loss": test_loss_values,
+                    "name": f"{self.model}"
                 })
 
             else:
-                lc_train_sizes, lc_train_scores, lc_val_scores = make_learning_curve(model, self.X, self.y,
-                                                                                     "neg_root_mean_squared_error")
+                self.model = model_fit(self.model, self.X_train, self.y_train)
+                predictions = model_predict(self.model, self.X_test)
 
-                param_range = [3, 5, 10, 20]
-                vc_train_scores, vc_test_scores = make_validation_curve(model, self.X, self.y, "max_depth",
-                                                                        param_range, "neg_root_mean_squared_error")
+                train_sizes, train_mean, val_mean = get_learning_curve(self.model, self.X, self.y)
 
-                self.run_config.emit({
-                    "lc_train_sizes": lc_train_sizes,
-                    "lc_train_mean": lc_train_scores.mean(axis=1),
-                    "lc_val_mean": lc_val_scores.mean(axis=1),
-                    "vc_train_mean": vc_train_scores.mean(axis=1),
-                    "vc_train_std": vc_train_scores.std(axis=1),
-                    "vc_test_mean": vc_test_scores.mean(axis=1),
-                    "vc_test_std": vc_test_scores.std(axis=1),
-                    "param_range": param_range,
-                    "model_type": "ml",
-                    "name": ""
+                vc_train_mean, vc_test_mean = get_validation_curve(self.model, self.X, self.y, self.param_name,
+                                                                   self.param_range, self.scoring)
+
+                self.signals.run_config.emit({
+                    "actual": self.y_test,
+                    "predictions": predictions,
+                    "lc_train_sizes": train_sizes,
+                    "lc_train_mean": train_mean,
+                    "lc_val_mean": val_mean,
+                    "param_range": self.param_range,
+                    "param_name": self.param_name,
+                    "scoring": self.scoring,
+                    "vc_train_mean": vc_train_mean,
+                    "vc_test_mean": vc_test_mean,
+                    "name": f"{self.model}"
                 })
 
-        elif self.dataset == "Classification":
-            if self.model == "Custom Neural Network":
-                loss_fn = get_loss_func(self.loss_name)
-                opt = get_optimizer(self.optimizer_name, self.lr, model)
+        elif self.dataset_type == "Classification":
 
-                (epoch_count, train_loss, test_loss, train_accuracy,
-                 test_accuracy) = model_train(self.dataset, model, loss_fn, opt, self.X_train, self.X_test,
-                                              self.y_train,
-                                              self.y_test, self.progress.emit)
+            if self.model_name == "Custom Neural Network Classifier":
+                (epochs, train_loss_values, test_loss_values, train_accuracy_values,
+                 test_accuracy_values, prediction_logits, predictions) = train_classifier_model(self.model,
+                                                                                                self.loss_function_name,
+                                                                                                self.optimizer_name,
+                                                                                                self.lr, self.X_train,
+                                                                                                self.X_test,
+                                                                                                self.y_train,
+                                                                                                self.y_test)
 
-                self.run_config.emit({
-                    "epochs": epoch_count,
-                    "train_loss": train_loss,
-                    "test_loss": test_loss,
-                    "train_accuracy": train_accuracy,
-                    "test_accuracy": test_accuracy,
-                    "model_type": "dlc",
-                    "name": ""
+                cm = get_confusion_matrix(self.y_test, predictions)
+
+                fpr, tpr, roc_auc = get_roc_curve(self.y_test, prediction_logits)
+
+                precision, recall = get_precision_recall_curve(self.y_test, prediction_logits)
+                ap = get_average_precision_score(self.y_test, prediction_logits)
+
+                self.signals.run_config.emit({
+                    "epochs": epochs,
+                    "train_loss": train_loss_values,
+                    "test_loss": test_loss_values,
+                    "train_acc": train_accuracy_values,
+                    "test_acc": test_accuracy_values,
+                    "cm": cm,
+                    "classes": [0, 1],
+                    "fpr": fpr,
+                    "tpr": tpr,
+                    "roc_auc": roc_auc,
+                    "y_true": self.y_test,
+                    "precision": precision,
+                    "recall": recall,
+                    "ap": ap,
+                    "name": f"{self.model}"
                 })
 
             else:
-                train_sizes, train_scores, val_scores = make_learning_curve(model, self.X, self.y, "accuracy")
-                # TODO: change values
-                self.run_config.emit({
-                    "train_sizes": train_sizes,
-                    "train_mean": train_scores.mean(axis=1),
-                    "val_mean": val_scores.mean(axis=1),
-                    "model_type": "ml",
-                    "name": ""
+                self.model = model_fit(self.model, self.X_train, self.y_train)
+                predictions = model_predict(self.model, self.X_test)
+
+                train_sizes, train_mean, val_mean = get_learning_curve(self.model, self.X, self.y)
+
+                vc_train_mean, vc_test_mean = get_validation_curve(self.model, self.X, self.y, self.param_name,
+                                                                   self.param_range, self.scoring)
+
+                predictions_score = model_predict_proba(self.model, self.X_test)
+
+                cm = get_confusion_matrix(self.y_test, predictions)
+
+                fpr, tpr, roc_auc = get_roc_curve(self.y_test, predictions_score)
+
+                precision, recall = get_precision_recall_curve(self.y_test, predictions_score)
+                ap = get_average_precision_score(self.y_test, predictions_score)
+
+                self.signals.run_config.emit({
+                    "cm": cm,
+                    "classes": [0, 1],
+                    "fpr": fpr,
+                    "tpr": tpr,
+                    "roc_auc": roc_auc,
+                    "lc_train_sizes": train_sizes,
+                    "lc_train_mean": train_mean,
+                    "lc_val_mean": val_mean,
+                    "y_true": self.y_test,
+                    "precision": precision,
+                    "recall": recall,
+                    "ap": ap,
+                    "param_range": self.param_range,
+                    "param_name": self.param_name,
+                    "scoring": self.scoring,
+                    "vc_train_mean": vc_train_mean,
+                    "vc_test_mean": vc_test_mean,
+                    "name": f"{self.model}"
                 })
+
+        self.signals.progress.emit(100)
+        self.signals.finished.emit(True)
