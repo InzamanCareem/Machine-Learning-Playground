@@ -42,6 +42,16 @@ class PlotsPanel:
         self.validation_curve_plot = Figure()
         self.validation_curve_plot_canvas = FigureCanvas(self.validation_curve_plot)
 
+        self.loss_curve_tab = QWidget()
+        self.loss_curve_tab_layout = QVBoxLayout()
+        self.loss_curve_plot = Figure()
+        self.loss_curve_plot_canvas = FigureCanvas(self.loss_curve_plot)
+
+        self.accuracy_curve_tab = QWidget()
+        self.accuracy_curve_tab_layout = QVBoxLayout()
+        self.accuracy_curve_plot = Figure()
+        self.accuracy_curve_plot_canvas = FigureCanvas(self.accuracy_curve_plot)
+
         self._set_tab()
 
     def _set_tab(self):
@@ -66,6 +76,12 @@ class PlotsPanel:
         self.validation_curve_tab_layout.addWidget(self.validation_curve_plot_canvas)
         self.validation_curve_tab.setLayout(self.validation_curve_tab_layout)
 
+        self.loss_curve_tab_layout.addWidget(self.loss_curve_plot_canvas)
+        self.loss_curve_tab.setLayout(self.loss_curve_tab_layout)
+
+        self.accuracy_curve_tab_layout.addWidget(self.accuracy_curve_plot_canvas)
+        self.accuracy_curve_tab.setLayout(self.accuracy_curve_tab_layout)
+
         self.canvas_tabs.addTab(self.actual_vs_predicted_tab, "Actual vs Predicted")
         self.canvas_tabs.addTab(self.residuals_vs_fitted_tab, "Residuals vs Fitted")
         self.canvas_tabs.addTab(self.confusion_matrix_tab, "Confusion Matrix")
@@ -73,6 +89,8 @@ class PlotsPanel:
         self.canvas_tabs.addTab(self.precision_vs_recall_tab, "Precision vs Recall")
         self.canvas_tabs.addTab(self.learning_curve_tab, "Learning Curve")
         self.canvas_tabs.addTab(self.validation_curve_tab, "Validation Curve")
+        self.canvas_tabs.addTab(self.loss_curve_tab, "Loss Curve")
+        self.canvas_tabs.addTab(self.accuracy_curve_tab, "Accuracy Curve")
 
     def reset_values(self):
         self.actual_vs_predicted_plot.clear()
@@ -95,6 +113,12 @@ class PlotsPanel:
 
         self.validation_curve_plot.clear()
         self.validation_curve_plot_canvas.draw()
+
+        self.loss_curve_plot.clear()
+        self.loss_curve_plot_canvas.draw()
+
+        self.accuracy_curve_plot.clear()
+        self.accuracy_curve_plot_canvas.draw()
 
     def plot_actual_vs_predicted(self, run):
         self.actual_vs_predicted_plot.clear()
@@ -239,3 +263,35 @@ class PlotsPanel:
         ax.grid()
 
         self.validation_curve_plot_canvas.draw()
+
+    def plot_loss_curve(self, run):
+        self.loss_curve_plot.clear()
+        ax = self.loss_curve_plot.add_subplot(111)
+
+        ax.plot(run["epochs"], run["train_loss"], label="Training loss")
+        ax.plot(run["epochs"], run["test_loss"], label="Test loss")
+
+        ax.set_title("Loss Curve")
+        ax.set_xlabel("Epochs")
+        ax.set_ylabel("Loss")
+
+        ax.legend()
+        ax.grid()
+
+        self.loss_curve_plot_canvas.draw()
+
+    def plot_accuracy_curve(self, run):
+        self.accuracy_curve_plot.clear()
+        ax = self.accuracy_curve_plot.add_subplot(111)
+
+        ax.plot(run["epochs"], run["train_acc"], label="Training accuracy")
+        ax.plot(run["epochs"], run["test_acc"], label="Test accuracy")
+
+        ax.set_title("Loss Curve")
+        ax.set_xlabel("Epochs")
+        ax.set_ylabel("Accuracy")
+
+        ax.legend()
+        ax.grid()
+
+        self.accuracy_curve_plot_canvas.draw()
