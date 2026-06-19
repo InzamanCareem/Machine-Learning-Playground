@@ -3,6 +3,9 @@ from PyQt6.QtWidgets import QSlider, QLabel, QWidget, QVBoxLayout, QComboBox
 
 
 class DatasetControls:
+    REGRESSION_DATASETS = ["Custom regression dataset"]
+    CLASSIFICATION_DATASETS = ["Custom classification dataset"]
+
     def __init__(self, control_tabs, run_manager):
         self.control_tabs = control_tabs
         self.run_manager = run_manager
@@ -14,7 +17,7 @@ class DatasetControls:
         self.dataset_parameter_tab_layout = QVBoxLayout()
 
         self.dataset = QComboBox()
-        self.dataset.addItems(["Custom regression dataset", "California housing dataset"])
+        self.dataset.addItems(DatasetControls.REGRESSION_DATASETS)
 
         self.samples_slider = QSlider(Qt.Orientation.Horizontal)
         self.samples_slider.setRange(0, 4)
@@ -62,9 +65,9 @@ class DatasetControls:
     def reset_values(self, dataset_type):
         self.dataset.clear()
         if dataset_type == "Regression":
-            self.dataset.addItems(["Custom regression dataset", "California housing dataset"])
+            self.dataset.addItems(DatasetControls.REGRESSION_DATASETS)
         elif dataset_type == "Classification":
-            self.dataset.addItems(["Custom classification dataset", "Diabetes dataset"])
+            self.dataset.addItems(DatasetControls.CLASSIFICATION_DATASETS)
 
         self.samples_slider.blockSignals(True)
         self.features_slider.blockSignals(True)
