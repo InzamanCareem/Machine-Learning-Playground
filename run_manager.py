@@ -59,7 +59,9 @@ class RunManager:
             train_worker.signals.run_config.connect(self.plot_panel.plot_precision_vs_recall)
 
         train_worker.signals.run_config.connect(self.plot_panel.plot_learning_curve)
-        train_worker.signals.run_config.connect(self.plot_panel.plot_validation_curve)
+
+        if self.param_name is not None and self.param_range is not None and self.scoring is not None:
+            train_worker.signals.run_config.connect(self.plot_panel.plot_validation_curve)
 
         train_worker.signals.progress.connect(self.progress_panel.progress.setValue)
         train_worker.signals.run_config.connect(self.progress_panel.save_run)

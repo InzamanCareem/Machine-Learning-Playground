@@ -61,8 +61,10 @@ class ModelControls:
     def reset_values(self, dataset_type):
         self.model.clear()
 
+        self.model_parameter_selection.blockSignals(True)
+        self.model_scoring_selection.blockSignals(True)
+
         self.model_scoring_selection.clear()
-        self.model_scoring_selection.addItem("Select Scoring")
 
         if dataset_type == "Regression":
             self.model.addItems(["Linear Regression", "Decision Tree Regressor", "Random Forest Regressor", "SVR",
@@ -76,10 +78,15 @@ class ModelControls:
             self.model.addItems((["Logistic Regression", "Decision Tree Classifier", "Random Forest Classifier", "SVC",
                                   "KNeighbors Classifier", "Custom Neural Network Classifier"]))
 
-            self.model_scoring_selection.addItems(["accuracy", "precision", "recall", "f1", "roc_auc", "neg_log_loss"])
+            self.model_scoring_selection.addItems(
+                ["Select Scoring", "accuracy", "precision", "recall", "f1", "roc_auc", "neg_log_loss"])
 
         self.model.setCurrentIndex(0)
+        self.model_parameter_selection.setCurrentIndex(0)
         self.model_scoring_selection.setCurrentIndex(0)
+
+        self.model_parameter_selection.blockSignals(False)
+        self.model_scoring_selection.blockSignals(False)
 
     def _clear_layout(self):
         while self.model_parameter_tab_layout.count():
@@ -176,6 +183,10 @@ class ModelControls:
         elif self.model.currentText() == "Decision Tree Classifier":
             self._add_decision_tree_parameters()
 
+        self.model_scoring_selection.blockSignals(True)
+        self.model_scoring_selection.setCurrentIndex(0)
+        self.model_scoring_selection.blockSignals(False)
+
         self.run_manager.load_model(self.model.currentText(),
                                     **{parameter["alias"]: parameter["parameter_value"]() for parameter in
                                        self.current_parameters})
@@ -206,6 +217,7 @@ class ModelControls:
             parameter["parameter_value_label"].setText(f"{parameter["label"].text()}: {parameter["parameter_value"]()}")
 
     def on_model_parameter_change(self):
+
         self._update_parameter_labels()
 
         parameters = {parameter["alias"]: parameter["parameter_value"]() for parameter in self.current_parameters}
